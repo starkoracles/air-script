@@ -18,6 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 codegen-winter = { package = "air-codegen-winter", path = "../codegen/winterfell", version = "0.2.0" }
+codegen-cairo0 = { package = "air-codegen-cairo0", path = "../codegen/cairo0", version = "0.2.0" }
 env_logger = "0.10.0"
 ir = { package = "air-ir", path = "../ir", version = "0.2.0" }
 log = { version = "0.4", default-features = false }

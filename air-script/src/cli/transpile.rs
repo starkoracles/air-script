@@ -1,7 +1,8 @@
 use std::{fs, path::PathBuf};
 use structopt::StructOpt;
 
-use codegen_winter::CodeGenerator;
+use codegen_cairo0::CodeGenerator as CairoCodeGenerator;
+use codegen_winter::CodeGenerator as WinterCodeGenerator;
 use ir::AirIR;
 use parser::parse;
 
@@ -42,6 +43,16 @@ impl TranspileCmd {
             }
         };
 
+        // transpile to cairo0
+        let output_path_cairo0 = match &self.output_file {
+            Some(path) => path.clone(),
+            None => {
+                let mut path = input_path.clone();
+                path.set_extension("cairo");
+                path
+            }
+        };
+
         // load source input from file
         let source = fs::read_to_string(input_path).map_err(|err| {
             format!(
@@ -64,15 +75,25 @@ impl TranspileCmd {
         let ir = ir.unwrap();
 
         // generate Rust code targeting Winterfell
-        let codegen = CodeGenerator::new(&ir);
+        let codegen_winter = WinterCodeGenerator::new(&ir);
+        let codegen_cairo0 = CairoCodeGenerator::new(&ir);
 
         // write transpiled output to the output path
-        let result = fs::write(output_path.clone(), codegen.generate());
+        let result = fs::write(output_path.clone(), codegen_winter.generate());
         if let Err(err) = result {
             return Err(format!("{err:?}"));
         }
 
-        println!("Success! Transpiled to {}", output_path.display());
+        let result_cairo = fs::write(output_path_cairo0.clone(), codegen_cairo0.generate());
+        if let Err(err) = result_cairo {
+            return Err(format!("{err:?}"));
+        }
+
+        println!("Success! Transpiled Winter to {}", output_path.display());
+        println!(
+            "Success! Transpiled Cairo to {}",
+            output_path_cairo0.display()
+        );
         println!("============================================================");
 
         Ok(())
