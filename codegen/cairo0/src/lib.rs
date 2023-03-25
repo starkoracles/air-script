@@ -35,6 +35,13 @@ impl CodeGenerator {
 
     /// Returns a string of Cairo code implementing Cairo0
     pub fn generate(&self) -> String {
-        return "// Hello, Cairo0!\n".to_string() + &(97.to_string())+"\n";
+      let s1 = "// Hello, Cairo0!\n".to_string() + 
+        "// Air name " + &self.air_name + " " + &(self.segment_widths.len().to_string())+" segments\n"
+      ;
+      let mut s2 = "// ".to_string();
+      for (i,w) in self.segment_widths.iter().enumerate() {
+        s2 = s2  + "Segment " + &i.to_string() + "  size " + &w.to_string() + "\n// ";
+      }
+      return s1 + &s2 + "\n";
     }
 }
