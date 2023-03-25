@@ -6,7 +6,7 @@ use super::{
 use std::collections::{BTreeMap, BTreeSet};
 
 mod constraint;
-use constraint::ConstrainedBoundary;
+pub use constraint::ConstrainedBoundary;
 pub use constraint::{ConstraintDomain, ConstraintRoot};
 
 mod degree;
@@ -71,8 +71,8 @@ impl ExprDetails {
 /// example, transition constraints against the main execution trace, which is trace segment 0, will
 /// be specified by a vector in transition_constraints[0] containing a [ConstraintRoot] in the graph
 /// for each constraint against the main trace.
-#[derive(Default, Debug)]
-pub(super) struct Constraints {
+#[derive(Default, Debug, Clone)]
+pub struct Constraints {
     /// Constraint roots for all boundary constraints against the execution trace, by trace segment,
     /// where boundary constraints are any constraints that apply to either the first or the last
     /// row of the trace.

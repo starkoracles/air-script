@@ -29,7 +29,7 @@ const AUX_SEGMENT: TraceSegment = 1;
 /// - Tip nodes with no incoming edges (no parent nodes) always represent constraints, although they
 ///   do not necessarily represent all constraints. There could be constraints which are also
 ///   subgraphs of other constraints.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct AlgebraicGraph {
     /// All nodes in the graph.
     nodes: Vec<Node>,
@@ -521,7 +521,7 @@ impl AlgebraicGraph {
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct NodeIndex(usize);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Node {
     /// The operation represented by this node
     op: Operation,
@@ -534,7 +534,7 @@ impl Node {
 }
 
 /// An integrity constraint operation or value reference.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Operation {
     /// An inlined or named constant with identifier and access indices.
     Constant(ConstantValue),
@@ -575,7 +575,7 @@ impl Operation {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ConstantValue {
     Inline(u64),
     Scalar(String),

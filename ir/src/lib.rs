@@ -9,7 +9,7 @@ mod symbol_table;
 use symbol_table::{Scope, SymbolTable};
 
 pub mod constraints;
-use constraints::{AlgebraicGraph, ConstraintRoot, Constraints, MIN_CYCLE_LENGTH};
+pub use constraints::{AlgebraicGraph, ConstraintRoot, Constraints, MIN_CYCLE_LENGTH};
 pub use constraints::{IntegrityConstraintDegree, NodeIndex};
 
 mod trace_columns;
@@ -38,12 +38,12 @@ pub type BoundaryConstraintsMap = BTreeMap<usize, Expression>;
 /// TODO: docs
 #[derive(Default, Debug)]
 pub struct AirIR {
-    air_name: String,
-    segment_widths: Vec<u16>,
-    constants: Constants,
-    public_inputs: PublicInputs,
-    periodic_columns: PeriodicColumns,
-    constraints: Constraints,
+    pub air_name: String,
+    pub segment_widths: Vec<u16>,
+    pub constants: Constants,
+    pub public_inputs: PublicInputs,
+    pub periodic_columns: PeriodicColumns,
+    pub constraints: Constraints,
 }
 
 impl AirIR {
