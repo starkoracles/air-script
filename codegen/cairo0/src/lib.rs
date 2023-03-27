@@ -2,7 +2,9 @@ use ir::AirIR;
 use ir::Constants;
 use ir::PublicInputs;
 use ir::PeriodicColumns;
-use ir::Constraints;
+
+use ir::constraints::{AlgebraicGraph, ConstrainedBoundary};
+use ir::constraints::{ConstraintDomain, ConstraintRoot};
 
 
 // GENERATE verifier for proof as Cairo v0.4 
@@ -14,7 +16,10 @@ pub struct CodeGenerator {
   constants: Constants,
   public_inputs: PublicInputs,
   periodic_columns: PeriodicColumns,
-  constraints: Constraints,
+  boundary_constraints: Vec<Vec<ConstraintRoot>>,
+  validity_constraints:Vec<Vec<ConstraintRoot>>, 
+  transition_constraints: Vec<Vec<ConstraintRoot>>,
+  graph: AlgebraicGraph,
 }
 
 impl CodeGenerator {
@@ -29,7 +34,11 @@ impl CodeGenerator {
           constants: _ir.constants.clone(),  //Vec<air_ir::Constant> 
           public_inputs: _ir.public_inputs.clone(), //Vec<(String, usize)> 
           periodic_columns: _ir.periodic_columns.clone(), //Vec<Vec<u64>>`
-          constraints: _ir.constraints.clone(), //Constraints
+
+          boundary_constraints: _ir.constraints.boundary_constraints.clone(), //Constraints
+          validity_constraints: _ir.constraints.validity_constraints.clone(), //Constraints
+          transition_constraints: _ir.constraints.validity_constraints.clone(), //Constraints
+          graph: _ir.constraints.graph.clone(),
         }
     }
 
@@ -42,6 +51,16 @@ impl CodeGenerator {
       for (i,w) in self.segment_widths.iter().enumerate() {
         s2 = s2  + "Segment " + &i.to_string() + "  size " + &w.to_string() + "\n// ";
       }
-      return s1 + &s2 + "\n";
+      let mut s3 = "".to_string();
+      for (i,w) in self.segment_widths.iter().enumerate() {
+        s3 = s3 + "// SEGMENT " + &i.to_string() + " size " + &w.to_string() + "\n" +
+          "// ===============================================\n"
+        ;
+        s3 = s3 + "  // Boundary   constraints\n  // ----------------\n\n";
+        s3 = s3 + "  // Validity   constraints\n  // ----------------\n\n";
+        s3 = s3 + "  // Transition constraints\n  // ----------------\n\n";
+      }
+ 
+      return s1 + &s2 + &s3 + "\n";
     }
 }

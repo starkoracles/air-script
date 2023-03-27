@@ -76,19 +76,19 @@ pub struct Constraints {
     /// Constraint roots for all boundary constraints against the execution trace, by trace segment,
     /// where boundary constraints are any constraints that apply to either the first or the last
     /// row of the trace.
-    boundary_constraints: Vec<Vec<ConstraintRoot>>,
+    pub boundary_constraints: Vec<Vec<ConstraintRoot>>,
 
     /// Constraint roots for all validity constraints against the execution trace, by trace segment,
     /// where validity constraints are any constraints that apply to every row.
-    validity_constraints: Vec<Vec<ConstraintRoot>>,
+    pub validity_constraints: Vec<Vec<ConstraintRoot>>,
 
     /// Constraint roots for all transition constraints against the execution trace, by trace
     /// segment, where transition constraints are any constraints that apply to a frame of multiple
     /// rows.
-    transition_constraints: Vec<Vec<ConstraintRoot>>,
+    pub transition_constraints: Vec<Vec<ConstraintRoot>>,
 
     /// A directed acyclic graph which represents all of the constraints and their subexpressions.
-    graph: AlgebraicGraph,
+    pub graph: AlgebraicGraph,
 
     /// Variable roots for the variables used in integrity constraints. For each element in a
     /// vector or a matrix, a new root is added with a key equal to the [VariableValue] of the
