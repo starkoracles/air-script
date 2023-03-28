@@ -5,7 +5,9 @@ use ir::PeriodicColumns;
 
 use ir::constraints::{AlgebraicGraph, ConstrainedBoundary};
 use ir::constraints::{ConstraintDomain, ConstraintRoot};
-
+use ir::constraints::Operation; 
+use ir::NodeIndex;
+use ir::constraints::ConstantValue;
 
 // GENERATE verifier for proof as Cairo v0.4 
 // ================================================================================================
@@ -41,6 +43,31 @@ impl CodeGenerator {
           graph: _ir.constraints.graph.clone(),
         }
     }
+    pub fn showconst(&self, x:&ConstantValue) -> String {
+       match x {
+         ConstantValue::Inline(v) => v.to_string(),
+         ConstantValue::Scalar(_) => "Scalar".to_string(),
+         ConstantValue::Vector(_) => "Vector".to_string(),
+         ConstantValue::Matrix(_) => "Matrix".to_string(),
+       }
+    }
+
+    pub fn showcon(&self, w: &NodeIndex) -> String {
+      let op = &self.graph.node(w).op;
+      match op { 
+        Operation::Constant (x) => "Constant(".to_string() + &self.showconst(x) + ")",
+        Operation::TraceElement (ita) => "TraceElement(".to_string() + &ita.col_idx().to_string() + 
+          &{let offset = &ita.row_offset(); if *offset == 0 {"".to_string()} else {"+".to_string() + &offset.to_string()} } + 
+          ")",
+        Operation::PeriodicColumn (_,_) => "PeriodicColumn".to_string(),
+        Operation::PublicInput (_,_) => "PublicInput".to_string(),
+        Operation::RandomValue (_) => "RandomValue".to_string(),
+        Operation::Add (a, b) => "Add(".to_string() + &self.showcon(a) + ", " + &self.showcon(b) + ")",
+        Operation::Sub (a, b) => "Sub(".to_string() + &self.showcon(a) + ", " + &self.showcon(b) + ")",
+        Operation::Mul (a, b) => "Mul(".to_string() + &self.showcon(a) + ", " + &self.showcon(b) + ")",
+        Operation::Exp (a,j) => "Exp(".to_string() + &self.showcon(a) + ", " + &j.to_string() + ")",
+      }
+    }
 
     /// Returns a string of Cairo code implementing Cairo0
     pub fn generate(&self) -> String {
@@ -56,9 +83,29 @@ impl CodeGenerator {
         s3 = s3 + "// SEGMENT " + &i.to_string() + " size " + &w.to_string() + "\n" +
           "// ===============================================\n"
         ;
-        s3 = s3 + "  // Boundary   constraints\n  // ----------------\n\n";
-        s3 = s3 + "  // Validity   constraints\n  // ----------------\n\n";
-        s3 = s3 + "  // Transition constraints\n  // ----------------\n\n";
+        let bc = &self.boundary_constraints[i];
+        s3 = s3 + "\n  // Boundary   constraints (" +&(bc.len().to_string())+ ") \n  // ----------------\n";
+        for (i,w) in bc.iter().enumerate() {
+          s3 = s3 + "    // #" + &i.to_string() + ": root node " + &w.index.get().to_string() + " Domain: " + &w.domain.to_string() + "\n";
+          let opdisp = &self.showcon(&w.index);
+          s3 = s3 + "    //    " + opdisp + "\n";
+        }
+
+        let vc = &self.validity_constraints[i];
+        s3 = s3 + "\n  // Validity   constraints (" +&(vc.len().to_string())+ ")\n  // ----------------\n";
+        for (i,w) in vc.iter().enumerate() {
+          s3 = s3 + "    // #" + &i.to_string() + ": root node " + &w.index.get().to_string() + " Domain: " + &w.domain.to_string() + "\n";
+          let opdisp = &self.showcon(&w.index);
+          s3 = s3 + "    //   " + opdisp + "\n";
+        }
+
+        let tc = &self.transition_constraints[i];
+        s3 = s3 + "\n  // Transition constraints (" +&(tc.len().to_string())+ ")\n  // ----------------\n";
+        for (i,w) in tc.iter().enumerate() {
+          s3 = s3 + "    // #" + &i.to_string() + ": root node " + &w.index.get().to_string() + " Domain: " + &w.domain.to_string() + "\n";
+          let opdisp = &self.showcon(&w.index);
+          s3 = s3 + "    //   " + opdisp + "\n";
+        }
       }
  
       return s1 + &s2 + &s3 + "\n";

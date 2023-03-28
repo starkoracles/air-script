@@ -37,8 +37,8 @@ impl Display for ConstrainedBoundary {
 /// the domain against which the constraint should be applied.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ConstraintRoot {
-    index: NodeIndex,
-    domain: ConstraintDomain,
+    pub index: NodeIndex,
+    pub domain: ConstraintDomain,
 }
 
 impl ConstraintRoot {

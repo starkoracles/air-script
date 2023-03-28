@@ -32,7 +32,7 @@ const AUX_SEGMENT: TraceSegment = 1;
 #[derive(Default, Debug, Clone)]
 pub struct AlgebraicGraph {
     /// All nodes in the graph.
-    nodes: Vec<Node>,
+    pub nodes: Vec<Node>,
 }
 
 impl AlgebraicGraph {
@@ -521,10 +521,14 @@ impl AlgebraicGraph {
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct NodeIndex(usize);
 
+impl NodeIndex {
+  pub fn get(&self) -> usize { self.0 }
+}
+
 #[derive(Debug, Clone)]
 pub struct Node {
     /// The operation represented by this node
-    op: Operation,
+    pub op: Operation,
 }
 
 impl Node {
