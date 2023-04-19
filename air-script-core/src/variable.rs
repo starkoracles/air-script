@@ -1,13 +1,14 @@
-use super::{Expression, Identifier, Range};
+use super::{Expression, Identifier, ListComprehension};
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Variable {
+pub struct VariableBinding {
     name: Identifier,
-    value: VariableType,
+    value: VariableValueExpr,
 }
 
-impl Variable {
-    pub fn new(name: Identifier, value: VariableType) -> Self {
+impl VariableBinding {
+    pub fn new(name: Identifier, value: VariableValueExpr) -> Self {
         Self { name, value }
     }
 
@@ -15,48 +16,31 @@ impl Variable {
         self.name.name()
     }
 
-    pub fn value(&self) -> &VariableType {
+    pub fn value(&self) -> &VariableValueExpr {
         &self.value
+    }
+
+    pub fn into_parts(self) -> (String, VariableValueExpr) {
+        (self.name.into_name(), self.value)
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum VariableType {
+/// The expression or expressions that define the value of a variable binding.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum VariableValueExpr {
     Scalar(Expression),
     Vector(Vec<Expression>),
     Matrix(Vec<Vec<Expression>>),
     ListComprehension(ListComprehension),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ListComprehension {
-    expression: Box<Expression>,
-    context: Vec<(Identifier, Iterable)>,
-}
-
-impl ListComprehension {
-    /// Creates a new list comprehension.
-    pub fn new(expression: Expression, context: Vec<(Identifier, Iterable)>) -> Self {
-        Self {
-            expression: Box::new(expression),
-            context,
+impl Display for VariableValueExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Scalar(_) => write!(f, "scalar"),
+            Self::Vector(_) => write!(f, "vector"),
+            Self::Matrix(_) => write!(f, "matrix"),
+            Self::ListComprehension(_) => write!(f, "list comprehension"),
         }
     }
-
-    /// Returns the expression that is evaluated for each member of the list.
-    pub fn expression(&self) -> &Expression {
-        &self.expression
-    }
-
-    /// Returns the context of the list comprehension.
-    pub fn context(&self) -> &[(Identifier, Iterable)] {
-        &self.context
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Iterable {
-    Identifier(Identifier),
-    Range(Range),
-    Slice(Identifier, Range),
 }

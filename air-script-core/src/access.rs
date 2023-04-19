@@ -1,65 +1,80 @@
 use super::Identifier;
+use std::fmt::Display;
 
-/// [VectorAccess] is used to represent an element inside vector at the specified index.
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone)]
-pub struct VectorAccess {
+/// Defines the type of an access into a binding such as a [ConstantBinding] or a [VariableBinding].
+///
+/// - Default: accesses the entire bound value, which could be a scalar, vector, or matrix.
+/// - Vector: indexes into the bound value at the specified index. The result could be either a
+///   single value or a vector, depending on the type of the original binding. This is not allowed
+///   for bindings to scalar values and will result in an error.
+/// - Matrix: indexes into the bound value at the specified row and column. The result is a single
+///   value. This [AccessType] is not allowed for bindings to scalar or vector values and will
+///   result in an error.
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+pub enum AccessType {
+    Default,
+    Slice(Range),
+    Vector(usize),
+    /// Access into a matrix, with the values referring to the row and column indices respectively.
+    Matrix(usize, usize),
+}
+
+impl Display for AccessType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Default => write!(f, "direct reference by name"),
+            Self::Slice(range) => write!(f, "slice in range {range}"),
+            Self::Vector(idx) => write!(f, "vector at index {idx}"),
+            Self::Matrix(row, col) => write!(f, "matrix at [{row}][{col}]"),
+        }
+    }
+}
+
+/// [SymbolAccess] is used to indicate referencing all or part of an identifier that is bound to a
+/// value, such as a [ConstantBinding] or a [VariableBinding].
+///
+/// - `name`: is the identifier of the [ConstantBinding] or [VariableBinding] being accessed.
+/// - `access_type`: specifies the [AccessType] by which the identifier is being accessed.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SymbolAccess {
     name: Identifier,
-    idx: usize,
+    access_type: AccessType,
+    offset: usize,
 }
 
-impl VectorAccess {
-    /// Creates a new [VectorAccess] instance with the specified identifier name and index.
-    pub fn new(name: Identifier, idx: usize) -> Self {
-        Self { name, idx }
-    }
-
-    /// Returns the name of the vector.
-    pub fn name(&self) -> &str {
-        self.name.name()
-    }
-
-    /// Returns the index of the vector access.
-    pub fn idx(&self) -> usize {
-        self.idx
-    }
-}
-
-/// [MatrixAccess] is used to represent an element inside a matrix at the specified row and column
-/// indices.
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Clone)]
-pub struct MatrixAccess {
-    name: Identifier,
-    row_idx: usize,
-    col_idx: usize,
-}
-
-impl MatrixAccess {
-    /// Creates a new [MatrixAccess] instance with the specified identifier name and indices.
-    pub fn new(name: Identifier, row_idx: usize, col_idx: usize) -> Self {
+impl SymbolAccess {
+    pub fn new(name: Identifier, access_type: AccessType, offset: usize) -> Self {
         Self {
             name,
-            row_idx,
-            col_idx,
+            access_type,
+            offset,
         }
     }
 
-    /// Returns the name of the matrix.
+    pub fn ident(&self) -> &Identifier {
+        &self.name
+    }
+
     pub fn name(&self) -> &str {
         self.name.name()
     }
 
-    /// Returns the row index of the matrix access.
-    pub fn row_idx(&self) -> usize {
-        self.row_idx
+    /// Gets the access type of this [SymbolAccess].
+    pub fn access_type(&self) -> &AccessType {
+        &self.access_type
     }
 
-    /// Returns the column index of the matrix access.
-    pub fn col_idx(&self) -> usize {
-        self.col_idx
+    /// Gets the offset of this [SymbolAccess].
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn into_parts(self) -> (Identifier, AccessType, usize) {
+        (self.name, self.access_type, self.offset)
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Range {
     start: usize,
     end: usize,
@@ -77,4 +92,24 @@ impl Range {
     pub fn end(&self) -> usize {
         self.end
     }
+}
+
+impl Display for Range {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..{}", self.start(), self.end())
+    }
+}
+
+/// Contains values to be iterated over in a comprehension such as list comprehension or constraint
+/// comprehension.
+///
+/// For example, in the list comprehension \[x + y + z for (x, y, z) in (x, 0..5, z\[1..6\])\],
+/// `x` is an Iterable of type Identifier representing the vector to iterate over,
+/// `0..5` is an Iterable of type Range representing the range to iterate over,
+/// `z[1..6]` is an Iterable of type Slice representing the slice of the vector z to iterate over.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Iterable {
+    Identifier(Identifier),
+    Range(Range),
+    Slice(Identifier, Range),
 }

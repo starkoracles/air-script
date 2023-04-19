@@ -1,33 +1,37 @@
 pub use air_script_core::{
-    Constant, ConstantType, Expression, Identifier, IndexedTraceAccess, MatrixAccess,
-    NamedTraceAccess, TraceSegment, Variable, VariableType, VectorAccess,
+    AccessType, ConstantBinding, ConstantValueExpr, Expression, Identifier, Iterable,
+    ListComprehension, ListFolding, ListFoldingValueExpr, SymbolAccess, TraceAccess, TraceBinding,
+    TraceSegment, VariableBinding, VariableValueExpr,
 };
-pub use parser::ast::{self, Boundary, BoundaryStmt, IntegrityStmt, PublicInput};
-use std::collections::BTreeMap;
+pub use parser::ast;
+use std::collections::{BTreeMap, BTreeSet};
 
-mod symbol_table;
-use symbol_table::{Scope, SymbolTable};
+pub mod constraint_builder;
+use constraint_builder::{ConstrainedBoundary, ConstraintBuilder};
 
 pub mod constraints;
-pub use constraints::{AlgebraicGraph, ConstraintRoot, Constraints, MIN_CYCLE_LENGTH};
+use constraints::{
+    AlgebraicGraph, ConstraintDomain, ConstraintRoot, Constraints, Operation, CURRENT_ROW,
+    MIN_CYCLE_LENGTH,
+};
 pub use constraints::{IntegrityConstraintDegree, NodeIndex};
 
-mod trace_columns;
+pub mod declarations;
+use declarations::Declarations;
+pub use declarations::{PeriodicColumn, PublicInput};
 
-mod error;
-use error::SemanticError;
+mod symbol_table;
+pub use symbol_table::Value;
+use symbol_table::{Symbol, SymbolBinding, SymbolTable};
 
-mod helpers;
-use helpers::SourceValidator;
+mod validation;
+use validation::{SemanticError, SourceValidator};
 
 #[cfg(test)]
 mod tests;
 
 // TYPE ALIASES
 // ================================================================================================
-pub type Constants = Vec<Constant>;
-pub type PublicInputs = Vec<(String, usize)>;
-pub type PeriodicColumns = Vec<Vec<u64>>;
 pub type BoundaryConstraintsMap = BTreeMap<usize, Expression>;
 
 // AIR IR
@@ -39,10 +43,7 @@ pub type BoundaryConstraintsMap = BTreeMap<usize, Expression>;
 #[derive(Default, Debug)]
 pub struct AirIR {
     pub air_name: String,
-    pub segment_widths: Vec<u16>,
-    pub constants: Constants,
-    pub public_inputs: PublicInputs,
-    pub periodic_columns: PeriodicColumns,
+    pub declarations: Declarations,
     pub constraints: Constraints,
 }
 
@@ -50,17 +51,19 @@ impl AirIR {
     // --- CONSTRUCTOR ----------------------------------------------------------------------------
 
     /// Consumes the provided source and generates a matching AirIR.
-    pub fn new(source: &ast::Source) -> Result<Self, SemanticError> {
+    pub fn new(source: ast::Source) -> Result<Self, SemanticError> {
         let ast::Source(source) = source;
 
         // set a default name.
-        let mut air_name = "CustomAir";
-
-        let mut validator = SourceValidator::new();
+        let mut air_name = String::from("CustomAir");
 
         // process the declarations of identifiers first, using a single symbol table to enforce
         // uniqueness.
         let mut symbol_table = SymbolTable::default();
+        let mut validator = SourceValidator::new();
+        let mut eval_exprs = Vec::new();
+        let mut boundary_stmts = Vec::new();
+        let mut integrity_stmts = Vec::new();
 
         for section in source {
             match section {
@@ -71,15 +74,15 @@ impl AirIR {
                 ast::SourceSection::Constant(constant) => {
                     symbol_table.insert_constant(constant)?;
                 }
-                ast::SourceSection::Trace(columns) => {
-                    // process & validate the main trace columns
-                    symbol_table.insert_trace_columns(0, &columns.main_cols)?;
-                    validator.exists("main_trace_columns");
-                    if !columns.aux_cols.is_empty() {
-                        // process & validate the auxiliary trace columns
-                        symbol_table.insert_trace_columns(1, &columns.aux_cols)?;
+                ast::SourceSection::Trace(trace_bindings) => {
+                    if !trace_bindings.is_empty() {
+                        validator.exists("main_trace_columns");
+                    }
+                    if trace_bindings.len() > 1 {
                         validator.exists("aux_trace_columns");
                     }
+                    // process & validate the trace bindings
+                    symbol_table.insert_trace_bindings(trace_bindings)?;
                 }
                 ast::SourceSection::PublicInputs(inputs) => {
                     // process & validate the public inputs
@@ -94,68 +97,61 @@ impl AirIR {
                     symbol_table.insert_random_values(values)?;
                     validator.exists("random_values");
                 }
-                _ => {}
-            }
-        }
-
-        // then process the constraints & validate them against the symbol table.
-        let num_trace_segments = symbol_table.num_trace_segments();
-        let mut constraints = Constraints::new(num_trace_segments);
-
-        for section in source {
-            match section {
                 ast::SourceSection::BoundaryConstraints(stmts) => {
-                    for stmt in stmts {
-                        constraints.insert_boundary_stmt(&mut symbol_table, stmt)?
-                    }
+                    // save the boundary statements for processing after the SymbolTable is built.
+                    boundary_stmts.extend(stmts);
                     validator.exists("boundary_constraints");
                 }
                 ast::SourceSection::IntegrityConstraints(stmts) => {
-                    for stmt in stmts {
-                        constraints.insert_integrity_stmt(&mut symbol_table, stmt)?
-                    }
+                    // save the integrity statements for processing after the SymbolTable is built.
+                    integrity_stmts.extend(stmts);
                     validator.exists("integrity_constraints");
                 }
-                _ => {}
+                ast::SourceSection::EvaluatorFunction(eval_expr) => eval_exprs.push(eval_expr),
             }
         }
-
-        let (segment_widths, constants, public_inputs, periodic_columns) =
-            symbol_table.into_declarations();
 
         // validate sections
         validator.check()?;
 
+        // process the variable & constraint statements, and validate them against the symbol table.
+
+        // TODO: process evaluators
+
+        // process the variable & constraint statements, and validate them against the symbol table.
+        let mut constraint_builder = ConstraintBuilder::new(symbol_table);
+        constraint_builder.insert_boundary_constraints(boundary_stmts)?;
+        constraint_builder.insert_integrity_constraints(integrity_stmts)?;
+
+        let (declarations, constraints) = constraint_builder.into_air();
+
         Ok(Self {
-            air_name: air_name.to_string(),
-            segment_widths,
-            constants,
-            public_inputs,
-            periodic_columns,
+            air_name,
+            declarations,
             constraints,
         })
     }
 
-    // --- PUBLIC ACCESSORS -----------------------------------------------------------------------
+    // --- PUBLIC ACCESSORS FOR DECLARATIONS ------------------------------------------------------
 
     pub fn air_name(&self) -> &str {
         &self.air_name
     }
 
-    pub fn constants(&self) -> &Constants {
-        &self.constants
+    pub fn constants(&self) -> &[ConstantBinding] {
+        self.declarations.constants()
     }
 
-    pub fn segment_widths(&self) -> &Vec<u16> {
-        &self.segment_widths
+    pub fn periodic_columns(&self) -> &[PeriodicColumn] {
+        self.declarations.periodic_columns()
     }
 
-    pub fn public_inputs(&self) -> &PublicInputs {
-        &self.public_inputs
+    pub fn public_inputs(&self) -> &[PublicInput] {
+        self.declarations.public_inputs()
     }
 
-    pub fn periodic_columns(&self) -> &PeriodicColumns {
-        &self.periodic_columns
+    pub fn trace_segment_widths(&self) -> &[u16] {
+        self.declarations.trace_segment_widths()
     }
 
     // --- PUBLIC ACCESSORS FOR BOUNDARY CONSTRAINTS ----------------------------------------------
@@ -170,27 +166,31 @@ impl AirIR {
 
     // --- PUBLIC ACCESSORS FOR INTEGRITY CONSTRAINTS ---------------------------------------------
 
-    pub fn validity_constraint_degrees(
+    pub fn integrity_constraints(&self, trace_segment: TraceSegment) -> &[ConstraintRoot] {
+        self.constraints.integrity_constraints(trace_segment)
+    }
+
+    pub fn integrity_constraint_degrees(
         &self,
         trace_segment: TraceSegment,
     ) -> Vec<IntegrityConstraintDegree> {
-        self.constraints.validity_constraint_degrees(trace_segment)
+        self.constraints.integrity_constraint_degrees(trace_segment)
     }
 
-    pub fn validity_constraints(&self, trace_segment: TraceSegment) -> &[ConstraintRoot] {
-        self.constraints.validity_constraints(trace_segment)
-    }
-
-    pub fn transition_constraint_degrees(
-        &self,
-        trace_segment: TraceSegment,
-    ) -> Vec<IntegrityConstraintDegree> {
+    pub fn validity_constraints(&self, trace_segment: TraceSegment) -> Vec<&ConstraintRoot> {
         self.constraints
-            .transition_constraint_degrees(trace_segment)
+            .integrity_constraints(trace_segment)
+            .iter()
+            .filter(|constraint| matches!(constraint.domain(), ConstraintDomain::EveryRow))
+            .collect()
     }
 
-    pub fn transition_constraints(&self, trace_segment: TraceSegment) -> &[ConstraintRoot] {
-        self.constraints.transition_constraints(trace_segment)
+    pub fn transition_constraints(&self, trace_segment: TraceSegment) -> Vec<&ConstraintRoot> {
+        self.constraints
+            .integrity_constraints(trace_segment)
+            .iter()
+            .filter(|constraint| matches!(constraint.domain(), ConstraintDomain::EveryFrame(_)))
+            .collect()
     }
 
     pub fn constraint_graph(&self) -> &AlgebraicGraph {

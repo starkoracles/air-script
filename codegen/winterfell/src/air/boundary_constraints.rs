@@ -1,8 +1,8 @@
 use core::panic;
 
 use super::{
-    AirIR, AlgebraicGraph, Codegen, ConstraintDomain, ElemType, Impl, IndexedTraceAccess,
-    NodeIndex, Operation,
+    AirIR, AlgebraicGraph, Codegen, ConstraintDomain, ElemType, Impl, NodeIndex, Operation,
+    TraceAccess, Value,
 };
 
 // HELPERS TO GENERATE THE WINTERFELL BOUNDARY CONSTRAINT METHODS
@@ -85,7 +85,7 @@ fn domain_to_str(domain: ConstraintDomain) -> String {
 // ================================================================================================
 
 /// Given a node index that is expected to be the root index of a boundary constraint, returns
-/// the [IndexedTraceAccess] representing the trace segment and column against which the
+/// the [TraceAccess] representing the trace segment and column against which the
 /// boundary constraint expression must hold, as well as the node index that represents the root
 /// of the constraint expression that must equal zero during evaluation.
 ///
@@ -93,11 +93,11 @@ fn domain_to_str(domain: ConstraintDomain) -> String {
 pub fn split_boundary_constraint(
     graph: &AlgebraicGraph,
     index: &NodeIndex,
-) -> (IndexedTraceAccess, NodeIndex) {
+) -> (TraceAccess, NodeIndex) {
     let node = graph.node(index);
     match node.op() {
         Operation::Sub(lhs, rhs) => {
-            if let Operation::TraceElement(trace_access) = graph.node(lhs).op() {
+            if let Operation::Value(Value::TraceElement(trace_access)) = graph.node(lhs).op() {
                 debug_assert!(trace_access.row_offset() == 0);
                 (*trace_access, *rhs)
             } else {

@@ -1,15 +1,13 @@
 use crate::{
     ast::{
-        boundary_constraints::{Boundary, BoundaryConstraint, BoundaryStmt}, 
-        integrity_constraints::{IntegrityConstraint, IntegrityStmt},
-        Constant, ConstantType, Expression, Identifier, IndexedTraceAccess, Iterable,
-        ListComprehension, ListFoldingType, MatrixAccess, NamedTraceAccess, PeriodicColumn,
-        PublicInput, RandBinding, RandomValues, Range, Source, SourceSection, Trace, TraceCols, 
-        Variable, VariableType, VectorAccess
-    }, error::{Error, ParseError::{InvalidInt, InvalidTraceCols, InvalidRandomValues,
-    MissingMainTraceCols,
-    InvalidConst, InvalidListComprehension, MissingBoundaryConstraint,
-    MissingIntegrityConstraint}}, lexer::Token
+        boundary_constraints::{Boundary, BoundaryConstraint, BoundaryStmt},
+        integrity_constraints::{ConstraintType, IntegrityConstraint, IntegrityStmt},
+        build_trace_bindings, AccessType, SymbolAccess, ConstantBinding, ConstantValueExpr, 
+        ComprehensionContext, Expression, EvaluatorFunction, EvaluatorFunctionCall, Identifier, 
+        TraceAccess, Iterable, ListComprehension, ListFolding, ListFoldingValueExpr,
+        PeriodicColumn, PublicInput, RandBinding, RandomValues, Range, Source, SourceSection, 
+        TraceBinding, VariableBinding, VariableValueExpr, 
+    }, error::{Error, ParseError::*}, lexer::Token
 };
 use std::str::FromStr;
 use lalrpop_util::ParseError;
@@ -30,6 +28,7 @@ SourceSection: SourceSection = {
     PublicInputs => SourceSection::PublicInputs(<>),
     PeriodicColumns => SourceSection::PeriodicColumns(<>),
     RandomValues => SourceSection::RandomValues(<>),
+    EvaluatorFunction => SourceSection::EvaluatorFunction(<>),
     BoundaryConstraints => SourceSection::BoundaryConstraints(<>),
     IntegrityConstraints => SourceSection::IntegrityConstraints(<>),
 }
@@ -44,45 +43,45 @@ AirDef: Identifier = {
 // TRACE COLUMNS
 // ================================================================================================
 
-Trace: Trace = {
-    "trace_columns" ":" <main_cols: MainCols?> <aux_cols: AuxCols?> =>? match (main_cols, aux_cols)
-    {
-        (Some(main_cols), Some(aux_cols)) => Ok(Trace { main_cols, aux_cols }),
-        (Some(main_cols), None) => Ok(Trace { main_cols, aux_cols: vec![] }),
-        (None, Some(_aux_cols)) => Err(ParseError::User {
-            error: Error::ParseError(
-                MissingMainTraceCols("Declaration of main trace columns is required".to_string())
-            )
-        }),
-        (None, None) => Err(ParseError::User {
-            error: Error::ParseError(InvalidTraceCols("Trace Columns cannot be empty".to_string()))
-        })
-    } 
+Trace: Vec<Vec<TraceBinding>> = {
+    "trace_columns" ":" <main_cols: MainTraceBindings?> <aux_cols: AuxTraceBindings?> =>?
+        match (main_cols, aux_cols) {
+            (Some(main_cols), Some(aux_cols)) => Ok(vec![main_cols, aux_cols]),
+            (Some(main_cols), None) => Ok(vec![main_cols]),
+            (None, Some(_aux_cols)) => Err(ParseError::User {
+                error: Error::ParseError(
+                    MissingMainTraceCols("Declaration of main trace columns is required".to_string())
+                )
+            }),
+            (None, None) => Err(ParseError::User {
+                error: Error::ParseError(InvalidTraceCols("Trace Columns cannot be empty".to_string()))
+            })
+        } 
 }
 
-MainCols: Vec<TraceCols> = {
-    "main" ":" "[" <main_cols: CommaElems<TraceCols>> "]" => main_cols,
+MainTraceBindings: Vec<TraceBinding> = {
+    "main" ":" <main_cols: Vector<TraceBinding>> => build_trace_bindings(0, main_cols),
 }
 
-AuxCols: Vec<TraceCols> = {
-    "aux" ":" "[" <aux_cols: CommaElems<TraceCols>> "]" => aux_cols,
+AuxTraceBindings: Vec<TraceBinding> = {
+    "aux" ":" <aux_cols: Vector<TraceBinding>> => build_trace_bindings(1, aux_cols),
 }
 
-TraceCols: TraceCols = {
-    <name: Identifier> => TraceCols::new(name, 1),
-    <name: Identifier> <size: Size> => TraceCols::new(name, size)
+TraceBinding: (Identifier, u64) = {
+    <name: Identifier> => (name, 1),
+    <name: Identifier> <size: Size> => (name, size)
 }
 
 // CONSTANTS
 // ================================================================================================
 
-Constant: Constant = {
+Constant: ConstantBinding = {
     "const" <name: ConstName> "=" <scalar_value: Num_u64> => 
-        Constant::new(name, ConstantType::Scalar(scalar_value)),
-    "const" <name: ConstName> "=" "[" <vector_value: CommaElems<Num_u64>> "]" =>
-        Constant::new(name, ConstantType::Vector(vector_value)),
-    "const" <name: ConstName> "=" "[" <matrix_value: CommaElems<Vector<Num_u64>>> "]" =>
-        Constant::new(name, ConstantType::Matrix(matrix_value)),
+        ConstantBinding::new(name, ConstantValueExpr::Scalar(scalar_value)),
+    "const" <name: ConstName> "=" <vector_value: Vector<Num_u64>> =>
+        ConstantBinding::new(name, ConstantValueExpr::Vector(vector_value)),
+    "const" <name: ConstName> "=" <matrix_value: Matrix<Num_u64>> =>
+        ConstantBinding::new(name, ConstantValueExpr::Matrix(matrix_value)),
 }
 
 ConstName: Identifier = {
@@ -118,7 +117,7 @@ PeriodicColumns: Vec<PeriodicColumn> = {
 }
 
 PeriodicColumn: PeriodicColumn = {
-    <name: Identifier> ":" "[" <values: CommaElems<Num_u64>> "]" =>
+    <name: Identifier> ":" <values: Vector<Num_u64>> =>
         PeriodicColumn::new(name, values),
 }
 
@@ -147,12 +146,40 @@ RandValuesDecl: RandomValues = {
             )
         }
     ),
-    <name: Identifier> ":" "[" <rand_vec: CommaElems<RandElem>> "]" => RandomValues::new(name, rand_vec.iter().map(|v| v.size()).sum(), rand_vec)
+    <name: Identifier> ":" <rand_vec: Vector<RandElem>> =>
+        RandomValues::new(name, rand_vec.iter().map(|v| v.size()).sum(), rand_vec)
 }
 
 RandElem: RandBinding = {
     <name: Identifier> => RandBinding::new(name, 1),
     <name: Identifier> <size: Size> => RandBinding::new(name, size)
+}
+
+// EVALUATOR FUNCTIONS
+// ================================================================================================
+
+EvaluatorFunction: EvaluatorFunction = {
+    "ev" <evaluator_fn_name: Identifier> "(" <main_cols: MainTraceBindings> "," <aux_cols: AuxTraceBindings> ")" ":"
+        <integrity_stmts: IntegrityStmts> => {
+            let mut cols = main_cols;
+            cols.extend(aux_cols);
+            EvaluatorFunction::new(
+                evaluator_fn_name,
+                cols,
+                integrity_stmts)
+        },
+    "ev" <evaluator_fn_name: Identifier> "(" <main_cols: MainTraceBindings> ")" ":"
+        <integrity_stmts: IntegrityStmts> => 
+            EvaluatorFunction::new(
+                evaluator_fn_name,
+                main_cols,
+                integrity_stmts),
+    "ev" <evaluator_fn_name: Identifier> "(" <aux_cols: AuxTraceBindings> ")" ":"
+        <integrity_stmts: IntegrityStmts> =>
+            EvaluatorFunction::new(
+                evaluator_fn_name,
+                aux_cols,
+                integrity_stmts),
 }
 
 // BOUNDARY STATEMENTS
@@ -162,7 +189,7 @@ BoundaryConstraints: Vec<BoundaryStmt> = {
     "boundary_constraints" ":" <boundary_stmts: BoundaryStmt+> =>? {
         // check if at least one boundary constraint is defined
         let boundary_constraints_exist = boundary_stmts.iter().any(|stmt| match stmt {
-            BoundaryStmt::Constraint(_) => true,
+            BoundaryStmt::Constraint(_) | BoundaryStmt::ConstraintComprehension(_, _) => true,
             _ => false,
         });
         if !boundary_constraints_exist {
@@ -179,21 +206,29 @@ BoundaryConstraints: Vec<BoundaryStmt> = {
 }
 
 BoundaryStmt: BoundaryStmt = {
-    "enf" <column: NamedTraceAccess> "." <boundary: Boundary> "=" <value: BoundaryExpr> =>
-        BoundaryStmt::Constraint(BoundaryConstraint::new(column, boundary, value)),
     "let" <name: Identifier> "=" <boundary_variable_type: BoundaryVariableType> =>
-        BoundaryStmt::Variable(Variable::new(name, boundary_variable_type)),
+        BoundaryStmt::VariableBinding(VariableBinding::new(name, boundary_variable_type)),
+    "enf" <boundary_constraint: BoundaryConstraintExpr> =>
+        BoundaryStmt::Constraint(boundary_constraint),
+    "enf" <boundary_constraint: BoundaryConstraintExpr>
+        <comprehension: ConstraintComprehension<BoundaryExpr>> =>
+        BoundaryStmt::ConstraintComprehension(boundary_constraint, comprehension),
 }
 
-BoundaryVariableType: VariableType = {
-    <scalar_value: BoundaryExpr> =>
-        VariableType::Scalar(scalar_value),
-    "[" <vector_value: CommaElems<BoundaryExpr>> "]" =>
-        VariableType::Vector(vector_value),
-    "[" <matrix_value: CommaElems<Vector<BoundaryExpr>>> "]" =>
-        VariableType::Matrix(matrix_value),
+BoundaryConstraintExpr: BoundaryConstraint = {
+    <column: SymbolAccess> "." <boundary: Boundary> "=" <value: BoundaryExpr> =>
+        BoundaryConstraint::new(column, boundary, value),
+}
+
+BoundaryVariableType: VariableValueExpr = {
+    <scalar_value: BoundaryExpr> => 
+        VariableValueExpr::Scalar(scalar_value),
+    <vector_value: Vector<BoundaryExpr>> => 
+        VariableValueExpr::Vector(vector_value),
+    <matrix_value: Matrix<BoundaryExpr>> =>
+        VariableValueExpr::Matrix(matrix_value),
     "[" <list_comprehension: ListComprehension<BoundaryExpr>> "]" =>
-        VariableType::ListComprehension(list_comprehension),
+        VariableValueExpr::ListComprehension(list_comprehension),
 }
 
 Boundary: Boundary = {
@@ -225,22 +260,24 @@ BoundaryExponent: Expression = {
 
 BoundaryAtom: Expression = {
     "(" <BoundaryExpr> ")",
-    "$" <ident: Identifier> <idx: Index> => Expression::Rand(ident, idx),
     <n: Num_u64> => Expression::Const(n),
-    <ident: Identifier> => Expression::Elem(ident),
-    <vector_access: VectorAccess> => Expression::VectorAccess(vector_access),
-    <matrix_access: MatrixAccess> => Expression::MatrixAccess(matrix_access),
-    <list_folding_type: ListFoldingType<BoundaryExpr>> => Expression::ListFolding(list_folding_type),
+    <symbol_access: SymbolAccess> => Expression::SymbolAccess(symbol_access),
+    <list_folding_type: ListFolding<BoundaryExpr>> => Expression::ListFolding(list_folding_type),
 }
 
 // INTEGRITY CONSTRAINTS
 // ================================================================================================
 
 IntegrityConstraints: Vec<IntegrityStmt> = {
-    "integrity_constraints" ":" <integrity_stmts: IntegrityStmt+> =>? {
+    "integrity_constraints" ":" <integrity_stmts: IntegrityStmts> => integrity_stmts
+}
+
+IntegrityStmts: Vec<IntegrityStmt> = {
+    <integrity_stmts_groups: IntegrityStmtGroup+> =>? {
+        let integrity_stmts: Vec<IntegrityStmt> = integrity_stmts_groups.into_iter().flatten().collect();
         // check if at least one integrity constraint is defined
         let integrity_constraints_exist = integrity_stmts.iter().any(|stmt| match stmt {
-            IntegrityStmt::Constraint(_) => true,
+            IntegrityStmt::Constraint(_, _) | IntegrityStmt::ConstraintComprehension(_, _, _) => true,
             _ => false,
         });
         if !integrity_constraints_exist {
@@ -253,33 +290,87 @@ IntegrityConstraints: Vec<IntegrityStmt> = {
             });
         }
         Ok(integrity_stmts)
-    }
+    },
+    
 }
 
-IntegrityStmt: IntegrityStmt = {
-    "enf" <lhs: IntegrityExpr> "=" <rhs: IntegrityExpr> =>
-        IntegrityStmt::Constraint(IntegrityConstraint::new(lhs, rhs)),
+IntegrityStmtGroup: Vec<IntegrityStmt> = {
     "let" <name: Identifier> "=" <integrity_variable_type: IntegrityVariableType> =>
-        IntegrityStmt::Variable(Variable::new(name, integrity_variable_type)),
+        vec![IntegrityStmt::VariableBinding(VariableBinding::new(name, integrity_variable_type))],
+    "enf" <integrity_constraint: IntegrityConstraintExpr> => vec![integrity_constraint],
+    "match" "enf" ":" <integrity_stmts: IntegrityConstraintExpr+> => integrity_stmts,
+    "enf" <integrity_constraint: IntegrityConstraintExpr>
+        <comprehension: ConstraintComprehension<IntegrityExpr>> => match integrity_constraint {
+            IntegrityStmt::Constraint(constraint_type, selectors) =>
+                return vec![IntegrityStmt::ConstraintComprehension(constraint_type, selectors, comprehension)],
+            _ => unreachable!() // this should never happen
+        }
 }
 
-IntegrityVariableType: VariableType = {
+IntegrityConstraintExpr: IntegrityStmt = {
+    <lhs: IntegrityExpr> "=" <rhs: IntegrityExpr> =>
+        IntegrityStmt::Constraint(ConstraintType::Inline(IntegrityConstraint::new(lhs, rhs)), None),
+    <evaluator_fn_call: EvaluatorFunctionCall> =>
+        IntegrityStmt::Constraint(ConstraintType::Evaluator(evaluator_fn_call), None),
+    <integrity_stmt_with_selector: IntegrityConstraintWithSelector> =>
+        integrity_stmt_with_selector,
+}
+
+IntegrityConstraintWithSelector: IntegrityStmt = {
+    <lhs: IntegrityExpr> "=" <rhs: IntegrityExpr> "when" <selectors: IntegrityExpr> =>
+        IntegrityStmt::Constraint(ConstraintType::Inline(IntegrityConstraint::new(lhs, rhs)),
+        Some(selectors)),
+    <evaluator_fn_call: EvaluatorFunctionCall> "when" <selectors: IntegrityExpr> =>
+        IntegrityStmt::Constraint(ConstraintType::Evaluator(evaluator_fn_call), Some(selectors)),
+}
+
+IntegrityVariableType: VariableValueExpr = {
     <scalar_value: IntegrityExpr> =>
-        VariableType::Scalar(scalar_value),
-    "[" <vector_value: CommaElems<IntegrityExpr>> "]" =>
-        VariableType::Vector(vector_value),
-    "[" <matrix_value: CommaElems<Vector<IntegrityExpr>>> "]" =>
-        VariableType::Matrix(matrix_value),
+        VariableValueExpr::Scalar(scalar_value),
+    <vector_value: Vector<IntegrityExpr>> =>
+        VariableValueExpr::Vector(vector_value),
+    <matrix_value: Matrix<IntegrityExpr>> =>
+        VariableValueExpr::Matrix(matrix_value),
     "[" <list_comprehension: ListComprehension<IntegrityExpr>> "]" =>
-        VariableType::ListComprehension(list_comprehension),
+        VariableValueExpr::ListComprehension(list_comprehension),
+}
+
+EvaluatorFunctionCall: EvaluatorFunctionCall = {
+    <ident: Identifier> "(" <args: CommaElems<Vector<SymbolAccess>>> ")" =>? {
+        if args.len() > 2 {
+            return Err(ParseError::User {
+                error: Error::ParseError(
+                    InvalidEvaluatorFunction(
+                        "Evaluator function call must have 1 or 2 arguments".to_string()
+                    )
+                )
+            });
+        }
+        Ok(EvaluatorFunctionCall::new(ident, args))
+    }
 }
 
 // --- INTEGRITY CONSTRAINT EXPRESSIONS WITH PRECEDENCE (LOWEST TO HIGHEST) ----------------------
 
 IntegrityExpr: Expression = {
-    <lexpr: IntegrityExpr> "+" <rexpr: IntegrityFactor> =>
+    <lexpr: IntegrityExpr> "&" <rexpr: IntegritySum> =>
+        Expression::Mul(Box::new(lexpr), Box::new(rexpr)),
+    <lexpr: IntegrityExpr> "|" <rexpr: IntegritySum> =>
+        Expression::Sub(
+            Box::new(Expression::Add(
+                Box::new(lexpr.clone()), Box::new(rexpr.clone()))
+            ),
+            Box::new(Expression::Mul(
+                Box::new(lexpr), Box::new(rexpr))
+            )
+        ),
+    IntegritySum
+}
+
+IntegritySum: Expression = {
+    <lexpr: IntegritySum> "+" <rexpr: IntegrityFactor> =>
         Expression::Add(Box::new(lexpr), Box::new(rexpr)),
-    <lexpr: IntegrityExpr> "-" <rexpr: IntegrityFactor> =>
+    <lexpr: IntegritySum> "-" <rexpr: IntegrityFactor> =>
         Expression::Sub(Box::new(lexpr), Box::new(rexpr)),
     IntegrityFactor
 }
@@ -298,14 +389,12 @@ IntegrityExponent: Expression = {
 
 IntegrityAtom: Expression = {
     "(" <IntegrityExpr> ")",
-    <col_access: IndexedTraceAccess> => Expression::IndexedTraceAccess(col_access),
-    "$" <ident: Identifier> <idx: Index> => Expression::Rand(ident, idx),
+    <col_access: TraceAccess> => Expression::TraceAccess(col_access),
     <n: Num_u64> => Expression::Const(n),
-    <ident: Identifier> => Expression::Elem(ident),
-    <vector_access: VectorAccess> => Expression::VectorAccess(vector_access),
-    <matrix_access: MatrixAccess> => Expression::MatrixAccess(matrix_access),
-    <trace_access: NamedTraceAccessWithOffset> => Expression::NamedTraceAccess(trace_access),
-    <list_folding_type: ListFoldingType<IntegrityExpr>> =>
+    "!" <expr: IntegrityAtom> =>
+        Expression::Sub(Box::new(Expression::Const(1)), Box::new(expr)),
+    <symbol_access: SymbolAccess> => Expression::SymbolAccess(symbol_access),
+    <list_folding_type: ListFolding<IntegrityExpr>> =>
         Expression::ListFolding(list_folding_type),
 }
 
@@ -320,8 +409,20 @@ CommaElems<T>: Vec<T> = {
     }
 }
 
+Tuple<T>: Vec<T> = {
+    "(" <e:T> <v:("," <T>)+> ")" => {
+        let mut v = v;
+        v.insert(0, e);
+        v
+    }
+}
+
 Vector<T>: Vec<T> = {
     "[" <elems: CommaElems<T>> "]" => elems
+}
+
+Matrix<T>: Vec<Vec<T>> = {
+    <elems: Vector<Vector<T>>> => elems
 }
 
 Size: u64 = {
@@ -332,30 +433,39 @@ Index: usize = {
     "[" <idx: Num_u64> "]" => idx as usize
 }
 
-VectorAccess: VectorAccess = {
-    <ident: Identifier> <idx: Index> => VectorAccess::new(ident, idx)
+SymbolAccess: SymbolAccess = {
+    <symbol_access: SymbolAccessBase> => SymbolAccess::new(symbol_access.0, symbol_access.1, 0),
+    <symbol_access: SymbolAccessBase> "'" => SymbolAccess::new(symbol_access.0, symbol_access.1, 1)
 }
 
-MatrixAccess: MatrixAccess = {
-    <ident: Identifier> <row: Index> <col: Index> =>
-        MatrixAccess::new(ident, row, col)
+SymbolAccessBase: (Identifier, AccessType) = {
+    <ident: Identifier> => (ident, AccessType::Default),
+    <ident: Identifier> "[" <range: Range> "]" => (ident, AccessType::Slice(range)),
+    <ident: Identifier> <idx: Index> =>  (ident, AccessType::Vector(idx)),
+    <ident: Identifier> <row: Index> <col: Index> => (ident, AccessType::Matrix(row, col)),
+    // accessing the random values array
+    <ident: RandArrayAccess> => (ident, AccessType::Default),
+    <ident: RandArrayAccess> <idx: Index> => (ident, AccessType::Vector(idx))
 }
 
-NamedTraceAccess: NamedTraceAccess = {
-    <ident: Identifier> => NamedTraceAccess::new(ident, 0, 0),
-    <ident: Identifier> <idx: Index> => NamedTraceAccess::new(ident, idx, 0)
+TraceAccess: TraceAccess = {
+    "$main" <idx: Index> => TraceAccess::new(0, idx, 1, 0),
+    "$main" <idx: Index> "'" => TraceAccess::new(0, idx, 1, 1), 
+    "$aux" <idx: Index> => TraceAccess::new(1, idx, 1, 0),
+    "$aux" <idx: Index> "'" => TraceAccess::new(1, idx, 1, 1),
 }
 
-NamedTraceAccessWithOffset: NamedTraceAccess = {
-    <ident: Identifier> "'" => NamedTraceAccess::new(ident, 0, 1),
-    <ident: Identifier> <idx: Index> "'" => NamedTraceAccess::new(ident, idx, 1)
-}
-
-IndexedTraceAccess: IndexedTraceAccess = {
-    "$main" <idx: Index> => IndexedTraceAccess::new(0, idx, 0),
-    "$main" <idx: Index> "'" => IndexedTraceAccess::new(0, idx, 1), 
-    "$aux" <idx: Index> => IndexedTraceAccess::new(1, idx, 0),
-    "$aux" <idx: Index> "'" => IndexedTraceAccess::new(1, idx, 1),
+ConstraintComprehension<T>: ComprehensionContext = {
+    "for" <members: Members> "in" <iterables: Iterables> =>?
+        if members.len() != iterables.len() {
+            Err(ParseError::User {
+                error: Error::ParseError(InvalidConstraintComprehension(
+                    "Number of members and iterables must match".to_string()
+                ))
+            })
+        } else {
+            Ok(members.into_iter().zip(iterables).collect::<Vec<_>>())
+        }
 }
 
 ListComprehension<T>: ListComprehension = {
@@ -371,11 +481,18 @@ ListComprehension<T>: ListComprehension = {
         }
 }
 
-ListFoldingType<T>: ListFoldingType = {
-    "sum" "(" "[" <list_comprehension: ListComprehension<T>> "]" ")" =>
-        ListFoldingType::Sum(list_comprehension),
-    "prod" "(" "[" <list_comprehension: ListComprehension<T>> "]" ")" =>
-        ListFoldingType::Prod(list_comprehension),
+ListFolding<T>: ListFolding = {
+    "sum" "(" <list_folding_value_type: ListFoldingValueExpr<T>> ")" =>
+        ListFolding::Sum(list_folding_value_type),
+    "prod" "(" <list_folding_value_type: ListFoldingValueExpr<T>> ")" =>
+        ListFolding::Prod(list_folding_value_type),
+}
+
+ListFoldingValueExpr<T>: ListFoldingValueExpr = {
+    <name: Identifier> => ListFoldingValueExpr::Identifier(name),
+    <vector: Vector<T>> => ListFoldingValueExpr::Vector(vector),
+    "[" <list_comprehension: ListComprehension<T>> "]" =>
+        ListFoldingValueExpr::ListComprehension(list_comprehension)
 }
 
 Members: Vec<Identifier> = {
@@ -396,6 +513,10 @@ Iterable: Iterable = {
 
 Range: Range = {
     <start: Num_u64> ".." <end: Num_u64> => Range::new(start as usize, end as usize)
+}
+
+RandArrayAccess: Identifier = {
+    "$" <n:identifier> => Identifier(format!("${n}"))
 }
 
 Identifier: Identifier = {
@@ -439,13 +560,19 @@ extern {
         "$main" => Token::MainAccess,
         "$aux" => Token::AuxAccess,
         "$" => Token::Rand,
+        "ev" => Token::EvaluatorFunction,
         "enf" => Token::Enf,
+        "when" => Token::When,
+        "match" => Token::Match,
         "'" => Token::Next,
         "=" => Token::Equal,
         "+" => Token::Plus,
         "-" => Token::Minus,
         "*" => Token::Mul,
         "^" => Token::Exp,
+        "&" => Token::And,
+        "|" => Token::Or,
+        "!" => Token::Not,
         ":" => Token::Colon,
         "," => Token::Comma,
         "[" => Token::Lsqb,

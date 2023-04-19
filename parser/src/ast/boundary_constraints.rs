@@ -1,4 +1,6 @@
-use super::{Expression, NamedTraceAccess, Variable};
+use super::{
+    ComprehensionContext, Expression, Identifier, Iterable, SymbolAccess, VariableBinding,
+};
 use std::fmt::Display;
 
 // BOUNDARY STATEMENTS
@@ -7,19 +9,20 @@ use std::fmt::Display;
 #[derive(Debug, Eq, PartialEq)]
 pub enum BoundaryStmt {
     Constraint(BoundaryConstraint),
-    Variable(Variable),
+    ConstraintComprehension(BoundaryConstraint, ComprehensionContext),
+    VariableBinding(VariableBinding),
 }
 
 /// Stores the expression corresponding to the boundary constraint.
 #[derive(Debug, Eq, PartialEq)]
 pub struct BoundaryConstraint {
-    access: NamedTraceAccess,
+    access: SymbolAccess,
     boundary: Boundary,
     value: Expression,
 }
 
 impl BoundaryConstraint {
-    pub fn new(access: NamedTraceAccess, boundary: Boundary, value: Expression) -> Self {
+    pub fn new(access: SymbolAccess, boundary: Boundary, value: Expression) -> Self {
         Self {
             access,
             boundary,
@@ -27,7 +30,7 @@ impl BoundaryConstraint {
         }
     }
 
-    pub fn access(&self) -> &NamedTraceAccess {
+    pub fn access(&self) -> &SymbolAccess {
         &self.access
     }
 
@@ -38,6 +41,10 @@ impl BoundaryConstraint {
     /// Returns the constraint's value expression.
     pub fn value(&self) -> &Expression {
         &self.value
+    }
+
+    pub fn into_parts(self) -> (Boundary, SymbolAccess, Expression) {
+        (self.boundary, self.access, self.value)
     }
 }
 
@@ -54,5 +61,47 @@ impl Display for Boundary {
             Boundary::First => write!(f, "first boundary"),
             Boundary::Last => write!(f, "last boundary"),
         }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct BoundaryConstraintComprehension {
+    access: SymbolAccess,
+    boundary: Boundary,
+    expr: Expression,
+    context: ComprehensionContext,
+}
+
+impl BoundaryConstraintComprehension {
+    pub fn new(
+        access: SymbolAccess,
+        boundary: Boundary,
+        expr: Expression,
+        context: ComprehensionContext,
+    ) -> Self {
+        Self {
+            access,
+            boundary,
+            expr,
+            context,
+        }
+    }
+
+    pub fn access(&self) -> &SymbolAccess {
+        &self.access
+    }
+
+    pub fn boundary(&self) -> Boundary {
+        self.boundary
+    }
+
+    /// Returns the expression that is evaluated for each member of the list.
+    pub fn expression(&self) -> &Expression {
+        &self.expr
+    }
+
+    /// Returns the context of the boundary constraint comprehension.
+    pub fn context(&self) -> &[(Identifier, Iterable)] {
+        &self.context
     }
 }

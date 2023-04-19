@@ -1,12 +1,14 @@
-use ir::IndexedTraceAccess;
-
-use super::{AirIR, ConstantValue, ElemType, IntegrityConstraintDegree, NodeIndex, Operation};
+use super::{
+    AccessType, AirIR, ElemType, IntegrityConstraintDegree, NodeIndex, Operation, TraceAccess,
+    Value,
+};
 
 // RUST STRING GENERATION FOR THE CONSTRAINT GRAPH
 // ================================================================================================
 
 /// Code generation trait for generating Rust code strings from IR types related to constraints and
 /// the [AlgebraicGraph].
+/// TODO: replace panics with errors
 pub trait Codegen {
     fn to_string(&self, ir: &AirIR, elem_type: ElemType, trace_segment: u8) -> String;
 }
@@ -31,7 +33,7 @@ impl Codegen for IntegrityConstraintDegree {
     }
 }
 
-impl Codegen for IndexedTraceAccess {
+impl Codegen for TraceAccess {
     fn to_string(&self, _ir: &AirIR, _elem_type: ElemType, trace_segment: u8) -> String {
         let frame = if let 0 = self.trace_segment() {
             "main"
@@ -65,49 +67,11 @@ impl Codegen for NodeIndex {
 impl Codegen for Operation {
     fn to_string(&self, ir: &AirIR, elem_type: ElemType, trace_segment: u8) -> String {
         match self {
-            Operation::Constant(ConstantValue::Inline(value)) => match elem_type {
-                ElemType::Base => format!("Felt::new({value})"),
-                ElemType::Ext => format!("E::from({value}_u64)"),
-            },
-            Operation::Constant(ConstantValue::Scalar(ident)) => match elem_type {
-                ElemType::Base => ident.to_string(),
-                ElemType::Ext => format!("E::from({ident})"),
-            },
-            Operation::Constant(ConstantValue::Vector(vector_access)) => match elem_type {
-                ElemType::Base => format!("{}[{}]", vector_access.name(), vector_access.idx()),
-                ElemType::Ext => {
-                    format!("E::from({}[{}])", vector_access.name(), vector_access.idx())
-                }
-            },
-            Operation::Constant(ConstantValue::Matrix(matrix_access)) => match elem_type {
-                ElemType::Base => format!(
-                    "{}[{}][{}]",
-                    matrix_access.name(),
-                    matrix_access.row_idx(),
-                    matrix_access.col_idx()
-                ),
-                ElemType::Ext => format!(
-                    "E::from({}[{}][{}])",
-                    matrix_access.name(),
-                    matrix_access.row_idx(),
-                    matrix_access.col_idx()
-                ),
-            },
-            Operation::TraceElement(trace_access) => {
-                trace_access.to_string(ir, elem_type, trace_segment)
-            }
-            Operation::PeriodicColumn(col_idx, _) => {
-                format!("periodic_values[{col_idx}]")
-            }
-            Operation::PublicInput(ident, idx) => {
-                format!("self.{ident}[{idx}]")
-            }
-            Operation::RandomValue(idx) => {
-                format!("aux_rand_elements.get_segment_elements(0)[{idx}]")
-            }
+            Operation::Value(value) => value.to_string(ir, elem_type, trace_segment),
             Operation::Add(_, _) => binary_op_to_string(ir, self, elem_type, trace_segment),
             Operation::Sub(_, _) => binary_op_to_string(ir, self, elem_type, trace_segment),
             Operation::Mul(_, _) => binary_op_to_string(ir, self, elem_type, trace_segment),
+            // TODO: move this logic to a helper function
             Operation::Exp(l_idx, r_idx) => {
                 let lhs = l_idx.to_string(ir, elem_type, trace_segment);
                 let lhs = if is_leaf(l_idx, ir) {
@@ -115,10 +79,68 @@ impl Codegen for Operation {
                 } else {
                     format!("({lhs})")
                 };
-                match elem_type {
-                    ElemType::Base => format!("{lhs}.exp(Felt::new({r_idx}))"),
-                    ElemType::Ext => format!("{lhs}.exp(E::PositiveInteger::from({r_idx}_u64))"),
+                match r_idx {
+                    0 => match elem_type {
+                        // x^0 = 1
+                        ElemType::Base => "Felt::ONE".to_string(),
+                        ElemType::Ext => "E::ONE".to_string(),
+                    },
+                    1 => lhs, // x^1 = x
+                    _ => match elem_type {
+                        ElemType::Base => format!("{lhs}.exp(Felt::new({r_idx}))"),
+                        ElemType::Ext => {
+                            format!("{lhs}.exp(E::PositiveInteger::from({r_idx}_u64))")
+                        }
+                    },
                 }
+            }
+        }
+    }
+}
+
+impl Codegen for Value {
+    fn to_string(&self, ir: &AirIR, elem_type: ElemType, trace_segment: u8) -> String {
+        match self {
+            // TODO: move constant handling to a helper function
+            Value::InlineConstant(0) => match elem_type {
+                ElemType::Base => "Felt::ZERO".to_string(),
+                ElemType::Ext => "E::ZERO".to_string(),
+            },
+            Value::InlineConstant(1) => match elem_type {
+                ElemType::Base => "Felt::ONE".to_string(),
+                ElemType::Ext => "E::ONE".to_string(),
+            },
+            Value::InlineConstant(value) => match elem_type {
+                ElemType::Base => format!("Felt::new({value})"),
+                ElemType::Ext => format!("E::from({value}_u64)"),
+            },
+            Value::BoundConstant(symbol_access) => {
+                let name = symbol_access.name().to_string();
+                let access_type = symbol_access.access_type();
+                let base_value = match access_type {
+                    AccessType::Default => name,
+                    AccessType::Vector(idx) => format!("{name}[{idx}]"),
+                    AccessType::Matrix(row_idx, col_idx) => {
+                        format!("{name}[{row_idx}][{col_idx}]",)
+                    }
+                    AccessType::Slice(_) => panic!("unsupported access type"),
+                };
+                match elem_type {
+                    ElemType::Base => base_value,
+                    ElemType::Ext => format!("E::from({base_value})"),
+                }
+            }
+            Value::TraceElement(trace_access) => {
+                trace_access.to_string(ir, elem_type, trace_segment)
+            }
+            Value::PeriodicColumn(col_idx, _) => {
+                format!("periodic_values[{col_idx}]")
+            }
+            Value::PublicInput(ident, idx) => {
+                format!("self.{ident}[{idx}]")
+            }
+            Value::RandomValue(idx) => {
+                format!("aux_rand_elements.get_segment_elements(0)[{idx}]")
             }
         }
     }

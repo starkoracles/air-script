@@ -1,7 +1,9 @@
 use super::{
-    build_parse_test, Error, Expression::*, Identifier, IntegrityConstraint, IntegrityStmt::*,
-    ParseError, RandBinding, RandomValues, Source, SourceSection, SourceSection::*,
+    build_parse_test, AccessType, Error, Expression::*, Identifier, IntegrityConstraint,
+    IntegrityStmt::*, ParseError, RandBinding, RandomValues, Source, SourceSection,
+    SourceSection::*, SymbolAccess,
 };
+use crate::ast::ConstraintType;
 
 // RANDOM VALUES
 // ================================================================================================
@@ -78,13 +80,22 @@ fn random_values_index_access() {
     integrity_constraints:
         enf a + $alphas[1] = 0";
     let expected = Source(vec![SourceSection::IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Add(
-                Box::new(Elem(Identifier("a".to_string()))),
-                Box::new(Rand(Identifier("alphas".to_string()), 1)),
+                Box::new(SymbolAccess(SymbolAccess::new(
+                    Identifier("a".to_string()),
+                    AccessType::Default,
+                    0,
+                ))),
+                Box::new(SymbolAccess(SymbolAccess::new(
+                    Identifier("$alphas".to_string()),
+                    AccessType::Vector(1),
+                    0,
+                ))),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }

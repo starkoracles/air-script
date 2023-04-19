@@ -1,8 +1,8 @@
 use super::{
-    build_parse_test, Expression::*, Identifier, IntegrityConstraint, IntegrityStmt::*, Source,
-    SourceSection::*,
+    build_parse_test, AccessType, Expression::*, Identifier, IntegrityConstraint, IntegrityStmt::*,
+    Source, SourceSection::*, SymbolAccess,
 };
-use crate::ast::NamedTraceAccess;
+use crate::ast::ConstraintType;
 
 // EXPRESSIONS
 // ================================================================================================
@@ -14,17 +14,22 @@ fn single_addition() {
     integrity_constraints:
         enf clk' + clk = 0";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Add(
-                Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                Box::new(SymbolAccess(SymbolAccess::new(
                     Identifier("clk".to_string()),
-                    0,
+                    AccessType::Default,
                     1,
                 ))),
-                Box::new(Elem(Identifier("clk".to_string()))),
+                Box::new(SymbolAccess(SymbolAccess::new(
+                    Identifier("clk".to_string()),
+                    AccessType::Default,
+                    0,
+                ))),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -36,20 +41,25 @@ fn multi_addition() {
     integrity_constraints:
         enf clk' + clk + 2 = 0";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Add(
                 Box::new(Add(
-                    Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("clk".to_string()),
-                        0,
+                        AccessType::Default,
                         1,
                     ))),
-                    Box::new(Elem(Identifier("clk".to_string()))),
+                    Box::new(SymbolAccess(SymbolAccess::new(
+                        Identifier("clk".to_string()),
+                        AccessType::Default,
+                        0,
+                    ))),
                 )),
                 Box::new(Const(2)),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -61,17 +71,22 @@ fn single_subtraction() {
     integrity_constraints:
         enf clk' - clk = 0";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Sub(
-                Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                Box::new(SymbolAccess(SymbolAccess::new(
                     Identifier("clk".to_string()),
-                    0,
+                    AccessType::Default,
                     1,
                 ))),
-                Box::new(Elem(Identifier("clk".to_string()))),
+                Box::new(SymbolAccess(SymbolAccess::new(
+                    Identifier("clk".to_string()),
+                    AccessType::Default,
+                    0,
+                ))),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -83,20 +98,25 @@ fn multi_subtraction() {
     integrity_constraints:
         enf clk' - clk - 1 = 0";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Sub(
                 Box::new(Sub(
-                    Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("clk".to_string()),
-                        0,
+                        AccessType::Default,
                         1,
                     ))),
-                    Box::new(Elem(Identifier("clk".to_string()))),
+                    Box::new(SymbolAccess(SymbolAccess::new(
+                        Identifier("clk".to_string()),
+                        AccessType::Default,
+                        0,
+                    ))),
                 )),
                 Box::new(Const(1)),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -108,17 +128,22 @@ fn single_multiplication() {
     integrity_constraints:
         enf clk' * clk = 0";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Mul(
-                Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                Box::new(SymbolAccess(SymbolAccess::new(
                     Identifier("clk".to_string()),
-                    0,
+                    AccessType::Default,
                     1,
                 ))),
-                Box::new(Elem(Identifier("clk".to_string()))),
+                Box::new(SymbolAccess(SymbolAccess::new(
+                    Identifier("clk".to_string()),
+                    AccessType::Default,
+                    0,
+                ))),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -130,20 +155,25 @@ fn multi_multiplication() {
     integrity_constraints:
         enf clk' * clk * 2 = 0";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Mul(
                 Box::new(Mul(
-                    Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("clk".to_string()),
-                        0,
+                        AccessType::Default,
                         1,
                     ))),
-                    Box::new(Elem(Identifier("clk".to_string()))),
+                    Box::new(SymbolAccess(SymbolAccess::new(
+                        Identifier("clk".to_string()),
+                        AccessType::Default,
+                        0,
+                    ))),
                 )),
                 Box::new(Const(2)),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -155,7 +185,11 @@ fn unit_with_parens() {
     integrity_constraints:
         enf (2) + 1 = 3";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(Add(Box::new(Const(2)), Box::new(Const(1))), Const(3)),
+        ConstraintType::Inline(IntegrityConstraint::new(
+            Add(Box::new(Const(2)), Box::new(Const(1))),
+            Const(3),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -167,20 +201,25 @@ fn ops_with_parens() {
     integrity_constraints:
         enf (clk' + clk) * 2 = 4";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Mul(
                 Box::new(Add(
-                    Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("clk".to_string()),
-                        0,
+                        AccessType::Default,
                         1,
                     ))),
-                    Box::new(Elem(Identifier("clk".to_string()))),
+                    Box::new(SymbolAccess(SymbolAccess::new(
+                        Identifier("clk".to_string()),
+                        AccessType::Default,
+                        0,
+                    ))),
                 )),
                 Box::new(Const(2)),
             ),
             Const(4),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -192,17 +231,18 @@ fn const_exponentiation() {
     integrity_constraints:
         enf clk'^2 = 1";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Exp(
-                Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                Box::new(SymbolAccess(SymbolAccess::new(
                     Identifier("clk".to_string()),
-                    0,
+                    AccessType::Default,
                     1,
                 ))),
                 Box::new(Const(2)),
             ),
             Const(1),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -214,20 +254,25 @@ fn non_const_exponentiation() {
     integrity_constraints:
         enf clk'^(clk + 2) = 1";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Exp(
-                Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                Box::new(SymbolAccess(SymbolAccess::new(
                     Identifier("clk".to_string()),
-                    0,
+                    AccessType::Default,
                     1,
                 ))),
                 Box::new(Add(
-                    Box::new(Elem(Identifier("clk".to_string()))),
+                    Box::new(SymbolAccess(SymbolAccess::new(
+                        Identifier("clk".to_string()),
+                        AccessType::Default,
+                        0,
+                    ))),
                     Box::new(Const(2)),
                 )),
             ),
             Const(1),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -257,23 +302,28 @@ fn multi_arithmetic_ops_same_precedence() {
     integrity_constraints:
         enf clk' - clk - 2 + 1 = 0";
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Add(
                 Box::new(Sub(
                     Box::new(Sub(
-                        Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("clk".to_string()),
-                            0,
+                            AccessType::Default,
                             1,
                         ))),
-                        Box::new(Elem(Identifier("clk".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("clk".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                     )),
                     Box::new(Const(2)),
                 )),
                 Box::new(Const(1)),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -290,26 +340,31 @@ fn multi_arithmetic_ops_different_precedence() {
     // 3. Addition/Subtraction
     // These operations are evaluated in the order of decreasing precedence.
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Sub(
                 Box::new(Sub(
                     Box::new(Exp(
-                        Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("clk".to_string()),
-                            0,
+                            AccessType::Default,
                             1,
                         ))),
                         Box::new(Const(2)),
                     )),
                     Box::new(Mul(
-                        Box::new(Elem(Identifier("clk".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("clk".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                         Box::new(Const(2)),
                     )),
                 )),
                 Box::new(Const(1)),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }
@@ -327,23 +382,28 @@ fn multi_arithmetic_ops_different_precedence_w_parens() {
     // 4. Addition/Subtraction
     // These operations are evaluated in the order of decreasing precedence.
     let expected = Source(vec![IntegrityConstraints(vec![Constraint(
-        IntegrityConstraint::new(
+        ConstraintType::Inline(IntegrityConstraint::new(
             Sub(
-                Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                Box::new(SymbolAccess(SymbolAccess::new(
                     Identifier("clk".to_string()),
-                    0,
+                    AccessType::Default,
                     1,
                 ))),
                 Box::new(Mul(
                     Box::new(Exp(
-                        Box::new(Elem(Identifier("clk".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("clk".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                         Box::new(Const(2)),
                     )),
                     Box::new(Sub(Box::new(Const(2)), Box::new(Const(1)))),
                 )),
             ),
             Const(0),
-        ),
+        )),
+        None,
     )])]);
     build_parse_test!(source).expect_ast(expected);
 }

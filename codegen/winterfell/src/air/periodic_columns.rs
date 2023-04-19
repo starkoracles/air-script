@@ -1,4 +1,4 @@
-use super::{AirIR, Impl, PeriodicColumns};
+use super::{AirIR, Impl, PeriodicColumn};
 
 pub(super) fn add_fn_get_periodic_column_values(impl_ref: &mut Impl, ir: &AirIR) {
     // define the function.
@@ -16,13 +16,23 @@ trait Codegen {
     fn to_string(&self) -> String;
 }
 
-impl Codegen for PeriodicColumns {
+impl Codegen for &[PeriodicColumn] {
     fn to_string(&self) -> String {
         let mut columns = vec![];
-        for column in self {
+        for column in *self {
             let mut rows = vec![];
             for row in column {
-                rows.push(format!("Felt::new({row})"));
+                match row {
+                    0 => {
+                        rows.push("Felt::ZERO".to_string());
+                    }
+                    1 => {
+                        rows.push("Felt::ONE".to_string());
+                    }
+                    _ => {
+                        rows.push(format!("Felt::new({row})"));
+                    }
+                }
             }
             columns.push(format!("vec![{}]", rows.join(", ")));
         }

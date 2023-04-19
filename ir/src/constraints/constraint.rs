@@ -1,36 +1,5 @@
-use super::{Boundary, NodeIndex, SemanticError, TraceSegment};
+use super::{Boundary, NodeIndex, SemanticError};
 use std::fmt::Display;
-
-/// [ConstrainedBoundary] represents the location within the trace where a boundary constraint is
-/// applied. It identifies the trace segment, the trace column index, and the [ConstraintDomain].
-/// The [ConstraintDomain] is assumed to be a valid boundary, either FirstRow or LastRow.
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
-pub struct ConstrainedBoundary {
-    trace_segment: TraceSegment,
-    col_idx: usize,
-    domain: ConstraintDomain,
-}
-
-impl ConstrainedBoundary {
-    pub fn new(trace_segment: TraceSegment, col_idx: usize, domain: ConstraintDomain) -> Self {
-        debug_assert!(domain == ConstraintDomain::FirstRow || domain == ConstraintDomain::LastRow);
-        Self {
-            trace_segment,
-            col_idx,
-            domain,
-        }
-    }
-}
-
-impl Display for ConstrainedBoundary {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} of column {} in segment {}",
-            self.domain, self.col_idx, self.trace_segment
-        )
-    }
-}
 
 /// A [ConstraintRoot] represents the entry node of a subgraph within the [AlgebraicGraph]
 /// representing a constraint. It also contains the [ConstraintDomain] for the constraint, which is
@@ -73,6 +42,22 @@ pub enum ConstraintDomain {
 }
 
 impl ConstraintDomain {
+    /// Returns true if this domain is a boundary domain (FirstRow or LastRow).
+    pub fn is_boundary(&self) -> bool {
+        matches!(
+            *self,
+            ConstraintDomain::FirstRow | ConstraintDomain::LastRow
+        )
+    }
+
+    /// Returns true if this domain is an integrity constraint domain.
+    pub fn is_integrity(&self) -> bool {
+        matches!(
+            *self,
+            ConstraintDomain::EveryRow | ConstraintDomain::EveryFrame(_)
+        )
+    }
+
     /// Combines two compatible [ConstraintDomain]s into a single [ConstraintDomain] that represents
     /// the maximum of the two. For example, if one domain is [ConstraintDomain::EveryFrame(2)] and
     /// the other is [ConstraintDomain::EveryFrame(3)], then the result will be
@@ -96,9 +81,7 @@ impl ConstraintDomain {
                 Ok(ConstraintDomain::EveryFrame(*a.max(b)))
             }
             // otherwise, the domains are not compatible.
-            _ => Err(SemanticError::InvalidConstraintDomain(format!(
-                "The specified constraint domain {other:?} is not compatible with the base domain {self:?}",
-            ))),
+            _ => Err(SemanticError::incompatible_constraint_domains(self, other)),
         }
     }
 }

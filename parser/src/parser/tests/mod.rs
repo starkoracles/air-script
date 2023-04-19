@@ -12,13 +12,16 @@ mod arithmetic_ops;
 mod boundary_constraints;
 mod comments;
 mod constants;
+mod evaluator_functions;
 mod identifiers;
 mod integrity_constraints;
 mod list_comprehension;
+mod list_folding;
 mod periodic_columns;
 mod pub_inputs;
 mod random_values;
 mod sections;
+mod selectors;
 mod trace_columns;
 mod variables;
 
@@ -34,35 +37,37 @@ fn full_air_file() {
         SourceSection::AirDef(Identifier("SystemAir".to_string())),
         // trace_columns:
         //     main: [clk, fmp, ctx]
-        SourceSection::Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("clk".to_string()), 1),
-                TraceCols::new(Identifier("fmp".to_string()), 1),
-                TraceCols::new(Identifier("ctx".to_string()), 1),
-            ],
-            aux_cols: vec![],
-        }),
+        SourceSection::Trace(vec![vec![
+            TraceBinding::new(Identifier("clk".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("fmp".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("ctx".to_string()), 0, 2, 1),
+        ]]),
         // integrity_constraints:
         //     enf clk' = clk + 1
         SourceSection::IntegrityConstraints(vec![IntegrityStmt::Constraint(
-            IntegrityConstraint::new(
+            ConstraintType::Inline(IntegrityConstraint::new(
                 // clk' = clk + 1
-                Expression::NamedTraceAccess(NamedTraceAccess::new(
+                Expression::SymbolAccess(SymbolAccess::new(
                     Identifier("clk".to_string()),
-                    0,
+                    AccessType::Default,
                     1,
                 )),
                 Expression::Add(
-                    Box::new(Expression::Elem(Identifier("clk".to_string()))),
+                    Box::new(Expression::SymbolAccess(SymbolAccess::new(
+                        Identifier("clk".to_string()),
+                        AccessType::Default,
+                        0,
+                    ))),
                     Box::new(Expression::Const(1)),
                 ),
-            ),
+            )),
+            None,
         )]),
         // boundary_constraints:
         //     enf clk.first = 0
         SourceSection::BoundaryConstraints(vec![BoundaryStmt::Constraint(
             BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("clk".to_string()), 0, 0),
+                SymbolAccess::new(Identifier("clk".to_string()), AccessType::Default, 0),
                 Boundary::First,
                 Expression::Const(0),
             ),

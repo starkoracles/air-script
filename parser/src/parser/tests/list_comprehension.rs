@@ -1,10 +1,11 @@
-use air_script_core::{Iterable, ListComprehension, ListFoldingType, Range};
+use air_script_core::{Iterable, ListComprehension, Range};
 
 use super::{build_parse_test, Identifier, IntegrityConstraint, Source};
 use crate::{
     ast::{
-        Boundary, BoundaryConstraint, BoundaryStmt, Expression::*, IntegrityStmt, NamedTraceAccess,
-        SourceSection::*, Trace, TraceCols, Variable, VariableType, VectorAccess,
+        AccessType, Boundary, BoundaryConstraint, BoundaryStmt, ConstraintType, Expression::*,
+        IntegrityStmt, SourceSection::*, SymbolAccess, TraceBinding, VariableBinding,
+        VariableValueExpr,
     },
     error::{Error, ParseError},
 };
@@ -25,20 +26,21 @@ fn bc_one_iterable_identifier_lc() {
         enf a.first = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("c".to_string()), 0, 2, 4),
+        ]]),
         BoundaryConstraints(vec![
-            BoundaryStmt::Variable(Variable::new(
+            BoundaryStmt::VariableBinding(VariableBinding::new(
                 Identifier("x".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Exp(
-                        Box::new(Elem(Identifier("col".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("col".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                         Box::new(Const(7)),
                     ),
                     vec![(
@@ -48,28 +50,32 @@ fn bc_one_iterable_identifier_lc() {
                 )),
             )),
             BoundaryStmt::Constraint(BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("a".to_string()), 0, 0),
+                SymbolAccess::new(Identifier("a".to_string()), AccessType::Default, 0),
                 Boundary::First,
                 Add(
                     Box::new(Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(0),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
-                                1,
+                                AccessType::Vector(1),
+                                0,
                             ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(2),
+                            0,
                         ))),
                     )),
-                    Box::new(VectorAccess(VectorAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("x".to_string()),
-                        3,
+                        AccessType::Vector(3),
+                        0,
                     ))),
                 ),
             )),
@@ -90,24 +96,29 @@ fn bc_identifier_and_range_lc() {
         enf a.first = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("c".to_string()), 0, 2, 4),
+        ]]),
         BoundaryConstraints(vec![
-            BoundaryStmt::Variable(Variable::new(
+            BoundaryStmt::VariableBinding(VariableBinding::new(
                 Identifier("x".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Mul(
                         Box::new(Exp(
                             Box::new(Const(2)),
-                            Box::new(Elem(Identifier("i".to_string()))),
+                            Box::new(SymbolAccess(SymbolAccess::new(
+                                Identifier("i".to_string()),
+                                AccessType::Default,
+                                0,
+                            ))),
                         )),
-                        Box::new(Elem(Identifier("c".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("c".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                     ),
                     vec![
                         (
@@ -122,28 +133,32 @@ fn bc_identifier_and_range_lc() {
                 )),
             )),
             BoundaryStmt::Constraint(BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("a".to_string()), 0, 0),
+                SymbolAccess::new(Identifier("a".to_string()), AccessType::Default, 0),
                 Boundary::First,
                 Add(
                     Box::new(Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(0),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
-                                1,
+                                AccessType::Vector(1),
+                                0,
                             ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(2),
+                            0,
                         ))),
                     )),
-                    Box::new(VectorAccess(VectorAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("x".to_string()),
-                        3,
+                        AccessType::Vector(3),
+                        0,
                     ))),
                 ),
             )),
@@ -164,19 +179,20 @@ fn bc_iterable_slice_lc() {
         enf a.first = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("c".to_string()), 0, 2, 4),
+        ]]),
         BoundaryConstraints(vec![
-            BoundaryStmt::Variable(Variable::new(
+            BoundaryStmt::VariableBinding(VariableBinding::new(
                 Identifier("x".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
-                    Elem(Identifier("c".to_string())),
+                VariableValueExpr::ListComprehension(ListComprehension::new(
+                    SymbolAccess(SymbolAccess::new(
+                        Identifier("c".to_string()),
+                        AccessType::Default,
+                        0,
+                    )),
                     vec![(
                         Identifier("c".to_string()),
                         Iterable::Slice(Identifier("c".to_string()), Range::new(0, 3)),
@@ -184,28 +200,32 @@ fn bc_iterable_slice_lc() {
                 )),
             )),
             BoundaryStmt::Constraint(BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("a".to_string()), 0, 0),
+                SymbolAccess::new(Identifier("a".to_string()), AccessType::Default, 0),
                 Boundary::First,
                 Add(
                     Box::new(Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(0),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
-                                1,
+                                AccessType::Vector(1),
+                                0,
                             ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(2),
+                            0,
                         ))),
                     )),
-                    Box::new(VectorAccess(VectorAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("x".to_string()),
-                        3,
+                        AccessType::Vector(3),
+                        0,
                     ))),
                 ),
             )),
@@ -226,22 +246,27 @@ fn bc_two_iterable_identifier_lc() {
         enf a.first = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-                TraceCols::new(Identifier("d".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("c".to_string()), 0, 2, 4),
+            TraceBinding::new(Identifier("d".to_string()), 0, 6, 4),
+        ]]),
         BoundaryConstraints(vec![
-            BoundaryStmt::Variable(Variable::new(
+            BoundaryStmt::VariableBinding(VariableBinding::new(
                 Identifier("diff".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Sub(
-                        Box::new(Elem(Identifier("x".to_string()))),
-                        Box::new(Elem(Identifier("y".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("x".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("y".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                     ),
                     vec![
                         (
@@ -256,28 +281,32 @@ fn bc_two_iterable_identifier_lc() {
                 )),
             )),
             BoundaryStmt::Constraint(BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("a".to_string()), 0, 0),
+                SymbolAccess::new(Identifier("a".to_string()), AccessType::Default, 0),
                 Boundary::First,
                 Add(
                     Box::new(Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(0),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
-                                1,
+                                AccessType::Vector(1),
+                                0,
                             ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(2),
+                            0,
                         ))),
                     )),
-                    Box::new(VectorAccess(VectorAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("x".to_string()),
-                        3,
+                        AccessType::Vector(3),
+                        0,
                     ))),
                 ),
             )),
@@ -298,28 +327,41 @@ fn bc_multiple_iterables_lc() {
         enf a.first = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 3),
-                TraceCols::new(Identifier("c".to_string()), 4),
-                TraceCols::new(Identifier("d".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 3),
+            TraceBinding::new(Identifier("c".to_string()), 0, 4, 4),
+            TraceBinding::new(Identifier("d".to_string()), 0, 8, 4),
+        ]]),
         BoundaryConstraints(vec![
-            BoundaryStmt::Variable(Variable::new(
+            BoundaryStmt::VariableBinding(VariableBinding::new(
                 Identifier("diff".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Sub(
                         Box::new(Sub(
                             Box::new(Add(
-                                Box::new(Elem(Identifier("w".to_string()))),
-                                Box::new(Elem(Identifier("x".to_string()))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("w".to_string()),
+                                    AccessType::Default,
+                                    0,
+                                ))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Default,
+                                    0,
+                                ))),
                             )),
-                            Box::new(Elem(Identifier("y".to_string()))),
+                            Box::new(SymbolAccess(SymbolAccess::new(
+                                Identifier("y".to_string()),
+                                AccessType::Default,
+                                0,
+                            ))),
                         )),
-                        Box::new(Elem(Identifier("z".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("z".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                     ),
                     vec![
                         (
@@ -342,28 +384,32 @@ fn bc_multiple_iterables_lc() {
                 )),
             )),
             BoundaryStmt::Constraint(BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("a".to_string()), 0, 0),
+                SymbolAccess::new(Identifier("a".to_string()), AccessType::Default, 0),
                 Boundary::First,
                 Add(
                     Box::new(Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(0),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
-                                1,
+                                AccessType::Vector(1),
+                                0,
                             ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(2),
+                            0,
                         ))),
                     )),
-                    Box::new(VectorAccess(VectorAccess::new(
+                    Box::new(SymbolAccess(SymbolAccess::new(
                         Identifier("x".to_string()),
-                        3,
+                        AccessType::Vector(3),
+                        0,
                     ))),
                 ),
             )),
@@ -388,20 +434,21 @@ fn ic_one_iterable_identifier_lc() {
         enf a = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("c".to_string()), 0, 2, 4),
+        ]]),
         IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
+            IntegrityStmt::VariableBinding(VariableBinding::new(
                 Identifier("x".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Exp(
-                        Box::new(Elem(Identifier("col".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("col".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                         Box::new(Const(7)),
                     ),
                     vec![(
@@ -410,13 +457,13 @@ fn ic_one_iterable_identifier_lc() {
                     )],
                 )),
             )),
-            IntegrityStmt::Variable(Variable::new(
+            IntegrityStmt::VariableBinding(VariableBinding::new(
                 Identifier("y".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Exp(
-                        Box::new(NamedTraceAccess(NamedTraceAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("col".to_string()),
-                            0,
+                            AccessType::Default,
                             1,
                         ))),
                         Box::new(Const(7)),
@@ -427,31 +474,42 @@ fn ic_one_iterable_identifier_lc() {
                     )],
                 )),
             )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Add(
+            IntegrityStmt::Constraint(
+                ConstraintType::Inline(IntegrityConstraint::new(
+                    SymbolAccess(SymbolAccess::new(
+                        Identifier("a".to_string()),
+                        AccessType::Default,
+                        0,
+                    )),
+                    Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(Add(
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(0),
+                                    0,
+                                ))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(1),
+                                    0,
+                                ))),
+                            )),
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(2),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
-                                Identifier("x".to_string()),
-                                1,
-                            ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(3),
+                            0,
                         ))),
-                    )),
-                    Box::new(VectorAccess(VectorAccess::new(
-                        Identifier("x".to_string()),
-                        3,
-                    ))),
-                ),
-            )),
+                    ),
+                )),
+                None,
+            ),
         ]),
     ]);
 
@@ -469,24 +527,29 @@ fn ic_iterable_identifier_range_lc() {
         enf a = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("c".to_string()), 0, 2, 4),
+        ]]),
         IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
+            IntegrityStmt::VariableBinding(VariableBinding::new(
                 Identifier("x".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Mul(
                         Box::new(Exp(
                             Box::new(Const(2)),
-                            Box::new(Elem(Identifier("i".to_string()))),
+                            Box::new(SymbolAccess(SymbolAccess::new(
+                                Identifier("i".to_string()),
+                                AccessType::Default,
+                                0,
+                            ))),
                         )),
-                        Box::new(Elem(Identifier("c".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("c".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                     ),
                     vec![
                         (
@@ -500,31 +563,42 @@ fn ic_iterable_identifier_range_lc() {
                     ],
                 )),
             )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Add(
+            IntegrityStmt::Constraint(
+                ConstraintType::Inline(IntegrityConstraint::new(
+                    SymbolAccess(SymbolAccess::new(
+                        Identifier("a".to_string()),
+                        AccessType::Default,
+                        0,
+                    )),
+                    Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(Add(
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(0),
+                                    0,
+                                ))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(1),
+                                    0,
+                                ))),
+                            )),
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(2),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
-                                Identifier("x".to_string()),
-                                1,
-                            ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(3),
+                            0,
                         ))),
-                    )),
-                    Box::new(VectorAccess(VectorAccess::new(
-                        Identifier("x".to_string()),
-                        3,
-                    ))),
-                ),
-            )),
+                    ),
+                )),
+                None,
+            ),
         ]),
     ]);
 
@@ -542,50 +616,62 @@ fn ic_iterable_slice_lc() {
         enf a = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("c".to_string()), 0, 2, 4),
+        ]]),
         IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
+            IntegrityStmt::VariableBinding(VariableBinding::new(
                 Identifier("x".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
-                    Elem(Identifier("c".to_string())),
+                VariableValueExpr::ListComprehension(ListComprehension::new(
+                    SymbolAccess(SymbolAccess::new(
+                        Identifier("c".to_string()),
+                        AccessType::Default,
+                        0,
+                    )),
                     vec![(
                         Identifier("c".to_string()),
                         Iterable::Slice(Identifier("c".to_string()), Range::new(0, 3)),
                     )],
                 )),
             )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Add(
+            IntegrityStmt::Constraint(
+                ConstraintType::Inline(IntegrityConstraint::new(
+                    SymbolAccess(SymbolAccess::new(
+                        Identifier("a".to_string()),
+                        AccessType::Default,
+                        0,
+                    )),
+                    Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(Add(
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(0),
+                                    0,
+                                ))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(1),
+                                    0,
+                                ))),
+                            )),
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(2),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
-                                Identifier("x".to_string()),
-                                1,
-                            ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(3),
+                            0,
                         ))),
-                    )),
-                    Box::new(VectorAccess(VectorAccess::new(
-                        Identifier("x".to_string()),
-                        3,
-                    ))),
-                ),
-            )),
+                    ),
+                )),
+                None,
+            ),
         ]),
     ]);
 
@@ -603,22 +689,27 @@ fn ic_two_iterable_identifier_lc() {
         enf a = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-                TraceCols::new(Identifier("d".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 1),
+            TraceBinding::new(Identifier("c".to_string()), 0, 2, 4),
+            TraceBinding::new(Identifier("d".to_string()), 0, 6, 4),
+        ]]),
         IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
+            IntegrityStmt::VariableBinding(VariableBinding::new(
                 Identifier("diff".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Sub(
-                        Box::new(Elem(Identifier("x".to_string()))),
-                        Box::new(Elem(Identifier("y".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("x".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("y".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                     ),
                     vec![
                         (
@@ -632,31 +723,42 @@ fn ic_two_iterable_identifier_lc() {
                     ],
                 )),
             )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Add(
+            IntegrityStmt::Constraint(
+                ConstraintType::Inline(IntegrityConstraint::new(
+                    SymbolAccess(SymbolAccess::new(
+                        Identifier("a".to_string()),
+                        AccessType::Default,
+                        0,
+                    )),
+                    Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(Add(
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(0),
+                                    0,
+                                ))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(1),
+                                    0,
+                                ))),
+                            )),
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(2),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
-                                Identifier("x".to_string()),
-                                1,
-                            ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(3),
+                            0,
                         ))),
-                    )),
-                    Box::new(VectorAccess(VectorAccess::new(
-                        Identifier("x".to_string()),
-                        3,
-                    ))),
-                ),
-            )),
+                    ),
+                )),
+                None,
+            ),
         ]),
     ]);
 
@@ -674,28 +776,41 @@ fn ic_multiple_iterables_lc() {
         enf a = x[0] + x[1] + x[2] + x[3]";
 
     let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 3),
-                TraceCols::new(Identifier("c".to_string()), 4),
-                TraceCols::new(Identifier("d".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
+        Trace(vec![vec![
+            TraceBinding::new(Identifier("a".to_string()), 0, 0, 1),
+            TraceBinding::new(Identifier("b".to_string()), 0, 1, 3),
+            TraceBinding::new(Identifier("c".to_string()), 0, 4, 4),
+            TraceBinding::new(Identifier("d".to_string()), 0, 8, 4),
+        ]]),
         IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
+            IntegrityStmt::VariableBinding(VariableBinding::new(
                 Identifier("diff".to_string()),
-                VariableType::ListComprehension(ListComprehension::new(
+                VariableValueExpr::ListComprehension(ListComprehension::new(
                     Sub(
                         Box::new(Sub(
                             Box::new(Add(
-                                Box::new(Elem(Identifier("w".to_string()))),
-                                Box::new(Elem(Identifier("x".to_string()))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("w".to_string()),
+                                    AccessType::Default,
+                                    0,
+                                ))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Default,
+                                    0,
+                                ))),
                             )),
-                            Box::new(Elem(Identifier("y".to_string()))),
+                            Box::new(SymbolAccess(SymbolAccess::new(
+                                Identifier("y".to_string()),
+                                AccessType::Default,
+                                0,
+                            ))),
                         )),
-                        Box::new(Elem(Identifier("z".to_string()))),
+                        Box::new(SymbolAccess(SymbolAccess::new(
+                            Identifier("z".to_string()),
+                            AccessType::Default,
+                            0,
+                        ))),
                     ),
                     vec![
                         (
@@ -717,31 +832,42 @@ fn ic_multiple_iterables_lc() {
                     ],
                 )),
             )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Add(
+            IntegrityStmt::Constraint(
+                ConstraintType::Inline(IntegrityConstraint::new(
+                    SymbolAccess(SymbolAccess::new(
+                        Identifier("a".to_string()),
+                        AccessType::Default,
+                        0,
+                    )),
+                    Add(
                         Box::new(Add(
-                            Box::new(VectorAccess(VectorAccess::new(
+                            Box::new(Add(
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(0),
+                                    0,
+                                ))),
+                                Box::new(SymbolAccess(SymbolAccess::new(
+                                    Identifier("x".to_string()),
+                                    AccessType::Vector(1),
+                                    0,
+                                ))),
+                            )),
+                            Box::new(SymbolAccess(SymbolAccess::new(
                                 Identifier("x".to_string()),
+                                AccessType::Vector(2),
                                 0,
                             ))),
-                            Box::new(VectorAccess(VectorAccess::new(
-                                Identifier("x".to_string()),
-                                1,
-                            ))),
                         )),
-                        Box::new(VectorAccess(VectorAccess::new(
+                        Box::new(SymbolAccess(SymbolAccess::new(
                             Identifier("x".to_string()),
-                            2,
+                            AccessType::Vector(3),
+                            0,
                         ))),
-                    )),
-                    Box::new(VectorAccess(VectorAccess::new(
-                        Identifier("x".to_string()),
-                        3,
-                    ))),
-                ),
-            )),
+                    ),
+                )),
+                None,
+            ),
         ]),
     ]);
 
@@ -807,520 +933,6 @@ fn err_ic_lc_two_members_one_iterable() {
 
     integrity_constraints:
         let x = [c + d for (c, d) in c]
-        enf a = x";
-
-    let error = Error::ParseError(ParseError::InvalidListComprehension(
-        "Number of members and iterables must match".to_string(),
-    ));
-    build_parse_test!(source).expect_error(error);
-}
-
-// LIST FOLDING
-// ================================================================================================
-
-#[test]
-fn bc_one_iterable_identifier_lf() {
-    let source = "
-    trace_columns:
-        main: [a, b, c[4]]
-    boundary_constraints:
-        let x = sum([col^7 for col in c])
-        let y = prod([col^7 for col in c])
-        enf a.first = x + y";
-
-    let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
-        BoundaryConstraints(vec![
-            BoundaryStmt::Variable(Variable::new(
-                Identifier("x".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Sum(ListComprehension::new(
-                    Exp(
-                        Box::new(Elem(Identifier("col".to_string()))),
-                        Box::new(Const(7)),
-                    ),
-                    vec![(
-                        Identifier("col".to_string()),
-                        Iterable::Identifier(Identifier("c".to_string())),
-                    )],
-                )))),
-            )),
-            BoundaryStmt::Variable(Variable::new(
-                Identifier("y".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Prod(ListComprehension::new(
-                    Exp(
-                        Box::new(Elem(Identifier("col".to_string()))),
-                        Box::new(Const(7)),
-                    ),
-                    vec![(
-                        Identifier("col".to_string()),
-                        Iterable::Identifier(Identifier("c".to_string())),
-                    )],
-                )))),
-            )),
-            BoundaryStmt::Constraint(BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("a".to_string()), 0, 0),
-                Boundary::First,
-                Add(
-                    Box::new(Elem(Identifier("x".to_string()))),
-                    Box::new(Elem(Identifier("y".to_string()))),
-                ),
-            )),
-        ]),
-    ]);
-
-    build_parse_test!(source).expect_ast(expected);
-}
-
-#[test]
-fn bc_two_iterable_identifier_lf() {
-    let source = "
-    trace_columns:
-        main: [a, b, c[4], d[4]]
-    boundary_constraints:
-        let x = sum([c * d for (c, d) in (c, d)])
-        let y = prod([c + d for (c, d) in (c, d)])
-        enf a.first = x + y";
-
-    let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-                TraceCols::new(Identifier("d".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
-        BoundaryConstraints(vec![
-            BoundaryStmt::Variable(Variable::new(
-                Identifier("x".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Sum(ListComprehension::new(
-                    Mul(
-                        Box::new(Elem(Identifier("c".to_string()))),
-                        Box::new(Elem(Identifier("d".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("c".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                        (
-                            Identifier("d".to_string()),
-                            Iterable::Identifier(Identifier("d".to_string())),
-                        ),
-                    ],
-                )))),
-            )),
-            BoundaryStmt::Variable(Variable::new(
-                Identifier("y".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Prod(ListComprehension::new(
-                    Add(
-                        Box::new(Elem(Identifier("c".to_string()))),
-                        Box::new(Elem(Identifier("d".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("c".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                        (
-                            Identifier("d".to_string()),
-                            Iterable::Identifier(Identifier("d".to_string())),
-                        ),
-                    ],
-                )))),
-            )),
-            BoundaryStmt::Constraint(BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("a".to_string()), 0, 0),
-                Boundary::First,
-                Add(
-                    Box::new(Elem(Identifier("x".to_string()))),
-                    Box::new(Elem(Identifier("y".to_string()))),
-                ),
-            )),
-        ]),
-    ]);
-
-    build_parse_test!(source).expect_ast(expected);
-}
-
-#[test]
-fn bc_two_iterables_identifier_range_lf() {
-    let source = "
-    trace_columns:
-        main: [a, b, c[4]]
-    boundary_constraints:
-        let x = sum([i * c for (i, c) in (0..4, c)])
-        let y = prod([i + c for (i, c) in (0..4, c)])
-        enf a.first = x + y";
-
-    let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
-        BoundaryConstraints(vec![
-            BoundaryStmt::Variable(Variable::new(
-                Identifier("x".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Sum(ListComprehension::new(
-                    Mul(
-                        Box::new(Elem(Identifier("i".to_string()))),
-                        Box::new(Elem(Identifier("c".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("i".to_string()),
-                            Iterable::Range(Range::new(0, 4)),
-                        ),
-                        (
-                            Identifier("c".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                    ],
-                )))),
-            )),
-            BoundaryStmt::Variable(Variable::new(
-                Identifier("y".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Prod(ListComprehension::new(
-                    Add(
-                        Box::new(Elem(Identifier("i".to_string()))),
-                        Box::new(Elem(Identifier("c".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("i".to_string()),
-                            Iterable::Range(Range::new(0, 4)),
-                        ),
-                        (
-                            Identifier("c".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                    ],
-                )))),
-            )),
-            BoundaryStmt::Constraint(BoundaryConstraint::new(
-                NamedTraceAccess::new(Identifier("a".to_string()), 0, 0),
-                Boundary::First,
-                Add(
-                    Box::new(Elem(Identifier("x".to_string()))),
-                    Box::new(Elem(Identifier("y".to_string()))),
-                ),
-            )),
-        ]),
-    ]);
-
-    build_parse_test!(source).expect_ast(expected);
-}
-
-#[test]
-fn ic_one_iterable_identifier_lf() {
-    let source = "
-    trace_columns:
-        main: [a, b, c[4]]
-    integrity_constraints:
-        let x = sum([col^7 for col in c])
-        let y = prod([col^7 for col in c])
-        enf a = x + y";
-
-    let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
-        IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
-                Identifier("x".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Sum(ListComprehension::new(
-                    Exp(
-                        Box::new(Elem(Identifier("col".to_string()))),
-                        Box::new(Const(7)),
-                    ),
-                    vec![(
-                        Identifier("col".to_string()),
-                        Iterable::Identifier(Identifier("c".to_string())),
-                    )],
-                )))),
-            )),
-            IntegrityStmt::Variable(Variable::new(
-                Identifier("y".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Prod(ListComprehension::new(
-                    Exp(
-                        Box::new(Elem(Identifier("col".to_string()))),
-                        Box::new(Const(7)),
-                    ),
-                    vec![(
-                        Identifier("col".to_string()),
-                        Iterable::Identifier(Identifier("c".to_string())),
-                    )],
-                )))),
-            )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Elem(Identifier("x".to_string()))),
-                    Box::new(Elem(Identifier("y".to_string()))),
-                ),
-            )),
-        ]),
-    ]);
-
-    build_parse_test!(source).expect_ast(expected);
-}
-
-#[test]
-fn ic_two_iterable_identifier_lf() {
-    let source = "
-    trace_columns:
-        main: [a, b, c[4], d[4]]
-    integrity_constraints:
-        let x = sum([c * d for (c, d) in (c, d)])
-        let y = prod([c + d for (c, d) in (c, d)])
-        enf a = x + y";
-
-    let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-                TraceCols::new(Identifier("d".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
-        IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
-                Identifier("x".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Sum(ListComprehension::new(
-                    Mul(
-                        Box::new(Elem(Identifier("c".to_string()))),
-                        Box::new(Elem(Identifier("d".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("c".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                        (
-                            Identifier("d".to_string()),
-                            Iterable::Identifier(Identifier("d".to_string())),
-                        ),
-                    ],
-                )))),
-            )),
-            IntegrityStmt::Variable(Variable::new(
-                Identifier("y".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Prod(ListComprehension::new(
-                    Add(
-                        Box::new(Elem(Identifier("c".to_string()))),
-                        Box::new(Elem(Identifier("d".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("c".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                        (
-                            Identifier("d".to_string()),
-                            Iterable::Identifier(Identifier("d".to_string())),
-                        ),
-                    ],
-                )))),
-            )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Elem(Identifier("x".to_string()))),
-                    Box::new(Elem(Identifier("y".to_string()))),
-                ),
-            )),
-        ]),
-    ]);
-
-    build_parse_test!(source).expect_ast(expected);
-}
-
-#[test]
-fn ic_two_iterables_identifier_range_lf() {
-    let source = "
-    trace_columns:
-        main: [a, b, c[4]]
-    integrity_constraints:
-        let x = sum([i * c for (i, c) in (0..4, c)])
-        let y = prod([i + c for (i, c) in (0..4, c)])
-        enf a = x + y";
-
-    let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 1),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
-        IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
-                Identifier("x".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Sum(ListComprehension::new(
-                    Mul(
-                        Box::new(Elem(Identifier("i".to_string()))),
-                        Box::new(Elem(Identifier("c".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("i".to_string()),
-                            Iterable::Range(Range::new(0, 4)),
-                        ),
-                        (
-                            Identifier("c".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                    ],
-                )))),
-            )),
-            IntegrityStmt::Variable(Variable::new(
-                Identifier("y".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Prod(ListComprehension::new(
-                    Add(
-                        Box::new(Elem(Identifier("i".to_string()))),
-                        Box::new(Elem(Identifier("c".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("i".to_string()),
-                            Iterable::Range(Range::new(0, 4)),
-                        ),
-                        (
-                            Identifier("c".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                    ],
-                )))),
-            )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Elem(Identifier("x".to_string()))),
-                    Box::new(Elem(Identifier("y".to_string()))),
-                ),
-            )),
-        ]),
-    ]);
-
-    build_parse_test!(source).expect_ast(expected);
-}
-
-#[test]
-fn ic_three_iterables_slice_identifier_range_lf() {
-    let source = "
-    trace_columns:
-        main: [a, b[6], c[4]]
-    integrity_constraints:
-        let x = sum([m * n * i for (m, n, i) in (b[1..5], c, 0..4)])
-        let x = sum([m * n * i for (m, n, i) in (b[1..5], c, 0..4)])
-        enf a = x + y";
-
-    let expected = Source(vec![
-        Trace(Trace {
-            main_cols: vec![
-                TraceCols::new(Identifier("a".to_string()), 1),
-                TraceCols::new(Identifier("b".to_string()), 6),
-                TraceCols::new(Identifier("c".to_string()), 4),
-            ],
-            aux_cols: vec![],
-        }),
-        IntegrityConstraints(vec![
-            IntegrityStmt::Variable(Variable::new(
-                Identifier("x".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Sum(ListComprehension::new(
-                    Mul(
-                        Box::new(Mul(
-                            Box::new(Elem(Identifier("m".to_string()))),
-                            Box::new(Elem(Identifier("n".to_string()))),
-                        )),
-                        Box::new(Elem(Identifier("i".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("m".to_string()),
-                            Iterable::Slice(Identifier("b".to_string()), Range::new(1, 5)),
-                        ),
-                        (
-                            Identifier("n".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                        (
-                            Identifier("i".to_string()),
-                            Iterable::Range(Range::new(0, 4)),
-                        ),
-                    ],
-                )))),
-            )),
-            IntegrityStmt::Variable(Variable::new(
-                Identifier("x".to_string()),
-                VariableType::Scalar(ListFolding(ListFoldingType::Sum(ListComprehension::new(
-                    Mul(
-                        Box::new(Mul(
-                            Box::new(Elem(Identifier("m".to_string()))),
-                            Box::new(Elem(Identifier("n".to_string()))),
-                        )),
-                        Box::new(Elem(Identifier("i".to_string()))),
-                    ),
-                    vec![
-                        (
-                            Identifier("m".to_string()),
-                            Iterable::Slice(Identifier("b".to_string()), Range::new(1, 5)),
-                        ),
-                        (
-                            Identifier("n".to_string()),
-                            Iterable::Identifier(Identifier("c".to_string())),
-                        ),
-                        (
-                            Identifier("i".to_string()),
-                            Iterable::Range(Range::new(0, 4)),
-                        ),
-                    ],
-                )))),
-            )),
-            IntegrityStmt::Constraint(IntegrityConstraint::new(
-                Elem(Identifier("a".to_string())),
-                Add(
-                    Box::new(Elem(Identifier("x".to_string()))),
-                    Box::new(Elem(Identifier("y".to_string()))),
-                ),
-            )),
-        ]),
-    ]);
-
-    build_parse_test!(source).expect_ast(expected);
-}
-
-// INVALID LIST FOLDING
-// ================================================================================================
-
-#[test]
-fn err_ic_lf_single_members_double_iterables() {
-    let source = "
-    trace_columns:
-        main: [a, b, c[4]]
-
-    integrity_constraints:
-        let x = sum([c for c in (c, d)])
         enf a = x";
 
     let error = Error::ParseError(ParseError::InvalidListComprehension(

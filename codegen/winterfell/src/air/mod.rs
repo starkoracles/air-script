@@ -1,8 +1,8 @@
 use super::{AirIR, Impl, Scope};
-use air_script_core::{Constant, ConstantType, IndexedTraceAccess};
+use air_script_core::{AccessType, ConstantBinding, ConstantValueExpr, TraceAccess};
 use ir::{
-    constraints::{AlgebraicGraph, ConstantValue, ConstraintDomain, Operation},
-    IntegrityConstraintDegree, NodeIndex, PeriodicColumns,
+    constraints::{AlgebraicGraph, ConstraintDomain, Operation},
+    IntegrityConstraintDegree, NodeIndex, PeriodicColumn, Value,
 };
 
 mod constants;
@@ -171,9 +171,8 @@ fn add_constraint_degrees(
     decl_name: &str,
 ) {
     let degrees = ir
-        .validity_constraint_degrees(trace_segment)
+        .integrity_constraint_degrees(trace_segment)
         .iter()
-        .chain(ir.transition_constraint_degrees(trace_segment).iter())
         .map(|degree| degree.to_string(ir, ElemType::Ext, trace_segment))
         .collect::<Vec<_>>();
     func_body.line(format!("let {decl_name} = vec![{}];", degrees.join(", ")));
