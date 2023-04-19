@@ -11,7 +11,7 @@ pub type PeriodicColumn = Vec<u64>;
 
 /// TODO: docs
 #[derive(Default, Debug, Clone)]
-pub(super) struct Declarations {
+pub struct Declarations {
     /// A vector of constants declared in the AirScript module.
     constants: Vec<ConstantBinding>,
 
@@ -35,25 +35,25 @@ pub(super) struct Declarations {
 impl Declarations {
     // --- ACCESSORS ------------------------------------------------------------------------------
 
-    pub(super) fn constants(&self) -> &[ConstantBinding] {
+    pub fn constants(&self) -> &[ConstantBinding] {
         &self.constants
     }
 
-    pub(super) fn periodic_columns(&self) -> &[PeriodicColumn] {
+    pub fn periodic_columns(&self) -> &[PeriodicColumn] {
         &self.periodic_columns
     }
 
-    pub(super) fn public_inputs(&self) -> &[PublicInput] {
+    pub fn public_inputs(&self) -> &[PublicInput] {
         &self.public_inputs
     }
 
     /// Gets the number of trace segments that were specified for this AIR.
-    pub(super) fn num_trace_segments(&self) -> usize {
+    pub fn num_trace_segments(&self) -> usize {
         self.trace_segment_widths.len() + 1
     }
 
     /// Returns a slice containing the widths of all trace segments.
-    pub(super) fn trace_segment_widths(&self) -> &[u16] {
+    pub fn trace_segment_widths(&self) -> &[u16] {
         &self.trace_segment_widths
     }
 

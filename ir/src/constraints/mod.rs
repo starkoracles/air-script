@@ -33,7 +33,7 @@ pub(super) const MIN_CYCLE_LENGTH: usize = 2;
 /// be specified by a vector in transition_constraints[0] containing a [ConstraintRoot] in the graph
 /// for each constraint against the main trace.
 #[derive(Default, Debug)]
-pub(crate) struct Constraints {
+pub struct Constraints {
     /// Constraint roots for all boundary constraints against the execution trace, by trace segment,
     /// where boundary constraints are any constraints that apply to either the first or the last
     /// row of the trace.

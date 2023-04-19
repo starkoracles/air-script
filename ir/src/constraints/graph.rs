@@ -157,7 +157,7 @@ impl AlgebraicGraph {
 
 /// Reference to a node in a graph by its index in the nodes vector of the graph struct.
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
-pub struct NodeIndex(usize);
+pub struct NodeIndex(pub usize);
 
 #[derive(Debug, Clone)]
 pub struct Node {
