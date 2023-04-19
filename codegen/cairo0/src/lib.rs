@@ -52,10 +52,31 @@ impl CodeGenerator {
        }
     }
 
+    pub fn ascairo(&self, w: &NodeIndex) -> String {
+      let op = &self.graph.node(w).op;
+      match op { 
+        Operation::Constant (x) =>  self.showconst(x),
+        Operation::TraceElement (ita) => 
+          { 
+            let offset = &ita.row_offset(); 
+            let colidx =  &ita.col_idx().to_string();
+            if *offset == 0 {"cur[".to_string() + &colidx + "]"} 
+            else {"nxt[".to_string() + &offset.to_string() + "]" } 
+           },
+        Operation::PeriodicColumn (_,_) => "PeriodicColumn".to_string(),
+        Operation::PublicInput (_,_) => "PublicInput".to_string(),
+        Operation::RandomValue (_) => "RandomValue".to_string(),
+        Operation::Add (a, b) => "(".to_string() + &self.ascairo(a) + " + " + &self.ascairo(b) + ")",
+        Operation::Sub (a, b) => "(".to_string() + &self.ascairo(a) + " - " + &self.ascairo(b) + ")",
+        Operation::Mul (a, b) => "(".to_string() + &self.ascairo(a) + " * " + &self.ascairo(b) + ")",
+        Operation::Exp (a,j) => "exp(".to_string() + &self.ascairo(a) + ", " + &j.to_string() + ")",
+      }
+    }
+
     pub fn showcon(&self, w: &NodeIndex) -> String {
       let op = &self.graph.node(w).op;
       match op { 
-        Operation::Constant (x) => "Constant(".to_string() + &self.showconst(x) + ")",
+        Operation::Constant (x) => self.showconst(x) ,
         Operation::TraceElement (ita) => "TraceElement(".to_string() + &ita.col_idx().to_string() + 
           &{let offset = &ita.row_offset(); if *offset == 0 {"".to_string()} else {"+".to_string() + &offset.to_string()} } + 
           ")",
@@ -71,8 +92,18 @@ impl CodeGenerator {
 
     /// Returns a string of Cairo code implementing Cairo0
     pub fn generate(&self) -> String {
-      let s1 = "// Hello, Cairo0!\n".to_string() + 
+      let mut s1 = "// Hello, Cairo0!\n".to_string() + 
         "// Air name " + &self.air_name + " " + &(self.segment_widths.len().to_string())+" segments\n"
+      ;
+      s1 = s1 + "from starkware.cairo.common.alloc import alloc\n";
+      s1 = s1 + "from starkware.cairo.common.memcpy import memcpy\n";
+      s1 = s1 + 
+        "struct EvaluationFrame {\n" +
+        "  current_len: felt,\n" +
+        "  current: felt*,\n" + 
+        "  next_len: felt,\n" +
+        "  next: felt*,\n" +
+        "}\n"
       ;
       let mut s2 = "// ".to_string();
       for (i,w) in self.segment_widths.iter().enumerate() {
@@ -97,6 +128,7 @@ impl CodeGenerator {
           s3 = s3 + "    // #" + &i.to_string() + ": root node " + &w.index.get().to_string() + " Domain: " + &w.domain.to_string() + "\n";
           let opdisp = &self.showcon(&w.index);
           s3 = s3 + "    //   " + opdisp + "\n";
+          s3 = s3 + "    assert t_evalations["+&i.to_string() +"] = " + &self.ascairo(&w.index) + ";\n";
         }
 
         let tc = &self.transition_constraints[i];
