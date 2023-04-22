@@ -220,7 +220,7 @@ impl CodeGenerator {
     let sa = self.ascairo(&va, a, counter);
     let sb = self.ascairo(&vb, b, counter);
     sa + &sb + 
-      "  " + op + "_g{range_check_ptr=range_check_ptr}(" + &va + ", " + &vb + ");\n" + 
+      "  " + op + "_g(" + &va + ", " + &vb + ");\n" + 
       "  local " + r + " = [ap - 1];\n"
   }
 
@@ -237,7 +237,7 @@ impl CodeGenerator {
           let sa = self.ascairo(&va, a, counter);
           let r = 
              sa + 
-             "  pow_g{range_check_ptr=range_check_ptr}(" + &va + ", " + &j.to_string() + ")"  + ";\n" +
+             "  pow_g(" + &va + ", " + &j.to_string() + ")"  + ";\n" +
              "  local " + r + " = [ap - 1];\n"
           ; 
           r 

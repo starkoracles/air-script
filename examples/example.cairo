@@ -180,40 +180,40 @@ func evaluate_transition_0{range_check_ptr} (
   let row = frame.row;
 
   local v3 = cur[0];
-  pow_g{range_check_ptr=range_check_ptr}(v3, 2);
+  pow_g(v3, 2);
   local v1 = [ap - 1];
   local v2 = cur[0];
-  sub_g{range_check_ptr=range_check_ptr}(v1, v2);
+  sub_g(v1, v2);
   local v0 = [ap - 1];
   assert t_evaluations[0] = v0;
 
   local v7 = periodic[0 + mod(row, 8)];
   local v9 = nxt[1];
   local v10 = cur[0];
-  sub_g{range_check_ptr=range_check_ptr}(v9, v10);
+  sub_g(v9, v10);
   local v8 = [ap - 1];
-  mul_g{range_check_ptr=range_check_ptr}(v7, v8);
+  mul_g(v7, v8);
   local v5 = [ap - 1];
   local v6 = 0;
-  sub_g{range_check_ptr=range_check_ptr}(v5, v6);
+  sub_g(v5, v6);
   local v4 = [ap - 1];
   assert t_evaluations[1] = v4;
 
   local v16 = 1;
   local v17 = cur[0];
-  sub_g{range_check_ptr=range_check_ptr}(v16, v17);
+  sub_g(v16, v17);
   local v14 = [ap - 1];
   local v20 = cur[3];
   local v21 = cur[1];
-  sub_g{range_check_ptr=range_check_ptr}(v20, v21);
+  sub_g(v20, v21);
   local v18 = [ap - 1];
   local v19 = cur[2];
-  sub_g{range_check_ptr=range_check_ptr}(v18, v19);
+  sub_g(v18, v19);
   local v15 = [ap - 1];
-  mul_g{range_check_ptr=range_check_ptr}(v14, v15);
+  mul_g(v14, v15);
   local v12 = [ap - 1];
   local v13 = 0;
-  sub_g{range_check_ptr=range_check_ptr}(v12, v13);
+  sub_g(v12, v13);
   local v11 = [ap - 1];
   assert t_evaluations[2] = v11;
 
@@ -221,14 +221,14 @@ func evaluate_transition_0{range_check_ptr} (
   local v27 = cur[3];
   local v29 = cur[1];
   local v30 = cur[2];
-  mul_g{range_check_ptr=range_check_ptr}(v29, v30);
+  mul_g(v29, v30);
   local v28 = [ap - 1];
-  sub_g{range_check_ptr=range_check_ptr}(v27, v28);
+  sub_g(v27, v28);
   local v26 = [ap - 1];
-  mul_g{range_check_ptr=range_check_ptr}(v25, v26);
+  mul_g(v25, v26);
   local v23 = [ap - 1];
   local v24 = 0;
-  sub_g{range_check_ptr=range_check_ptr}(v23, v24);
+  sub_g(v23, v24);
   local v22 = [ap - 1];
   assert t_evaluations[3] = v22;
 
@@ -253,11 +253,11 @@ func evaluate_transition_1{range_check_ptr} (
   local v34 = cur[0];
   local v36 = cur[3];
   local v37 = rand[0];
-  add_g{range_check_ptr=range_check_ptr}(v36, v37);
+  add_g(v36, v37);
   local v35 = [ap - 1];
-  mul_g{range_check_ptr=range_check_ptr}(v34, v35);
+  mul_g(v34, v35);
   local v33 = [ap - 1];
-  sub_g{range_check_ptr=range_check_ptr}(v32, v33);
+  sub_g(v32, v33);
   local v31 = [ap - 1];
   assert t_evaluations[0] = v31;
 
