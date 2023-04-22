@@ -214,19 +214,40 @@ impl CodeGenerator {
     }
   }
 
-  pub fn ascairo(&self, w: &NodeIndex) -> String {
+  pub fn binop(&self, r:&str, op:&str, a: &NodeIndex, b:&NodeIndex, counter: &mut i32) -> String {
+    let va = "v".to_string() +&counter.to_string(); *counter = *counter + 1;
+    let vb = "v".to_string() +&counter.to_string(); *counter = *counter + 1;
+    let sa = self.ascairo(&va, a, counter);
+    let sb = self.ascairo(&vb, b, counter);
+    sa + &sb + 
+      "  " + op + "_g{range_check_ptr=range_check_ptr}(" + &va + ", " + &vb + ");\n" + 
+      "  local " + r + " = [ap - 1];\n"
+  }
+
+  pub fn ascairo(&self, r:&str, w: &NodeIndex, counter: &mut i32) -> String {
     let op = &self.graph.node(w).op;
     match op {
-      Operation::Value(x) => self.showvalue(x),
-      Operation::Add(a, b) => "(".to_string() + &self.ascairo(a) + " + " + &self.ascairo(b) + ")",
-      Operation::Sub(a, b) => "(".to_string() + &self.ascairo(a) + " - " + &self.ascairo(b) + ")",
-      Operation::Mul(a, b) => "(".to_string() + &self.ascairo(a) + " * " + &self.ascairo(b) + ")",
-      Operation::Exp(a, j) => "exp(".to_string() + &self.ascairo(a) + ", " + &j.to_string() + ")",
+      Operation::Value(x) => "  local ".to_string() + r + " = " + &self.showvalue(x) + ";\n",
+      Operation::Add(a, b) => self.binop(r, "add", a, b, counter),
+      Operation::Sub(a, b) => self.binop(r, "sub", a, b, counter),
+      Operation::Mul(a, b) => self.binop(r, "mul", a, b, counter),
+      Operation::Exp(a, j) => 
+        {
+          let va = "v".to_string() +&counter.to_string(); *counter = *counter + 1;
+          let sa = self.ascairo(&va, a, counter);
+          let r = 
+             sa + 
+             "  pow_g{range_check_ptr=range_check_ptr}(" + &va + ", " + &j.to_string() + ")"  + ";\n" +
+             "  local " + r + " = [ap - 1];\n"
+          ; 
+          r 
+        },
     }
   }
 
   /// Returns a string of Cairo code implementing Cairo0
   pub fn generate(&self) -> String {
+    let mut counter : i32 = 0;
     // header
     let mut s = 
       "// Air name ".to_string() + &self.air_name + " " + &(self.segment_widths.len().to_string()) + " segments\n"
@@ -253,7 +274,7 @@ impl CodeGenerator {
          "// ===============================================\n"
        ;
        s = s + 
-         "func evaluate_transition_" + &i.to_string() + " (\n" + 
+         "func evaluate_transition_" + &i.to_string() + "{range_check_ptr} (\n" + 
          "  frame: EvaluationFrame,\n" + 
          "  t_evaluations: felt*,\n" + 
          "  periodic: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
@@ -262,7 +283,7 @@ impl CodeGenerator {
          "  alloc_locals;\n" + 
          "  let cur = frame.current;\n" + 
          "  let nxt = frame.next;\n" + 
-         "  let row = frame.row;\n"
+         "  let row = frame.row;\n\n"
        ;
             
        // just validity constraints
@@ -270,7 +291,9 @@ impl CodeGenerator {
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in vc.iter().enumerate() {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
-         s = s + "  assert t_evaluations[" + &i.to_string() + "] = " + &self.ascairo(&w.index) + ";\n";
+        let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
+        let eval = &self.ascairo(&r, &w.index, &mut counter);
+         s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n\n";
        } // constraints
 
        s = s + "\n  return ();\n";
