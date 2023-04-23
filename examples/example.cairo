@@ -179,6 +179,8 @@ func evaluate_transition_0{range_check_ptr} (
   let nxt = frame.next;
   let row = frame.row;
 
+// TRANSITION CONSTRAINTS
+
   local v3 = cur[0];
   pow_g(v3, 2);
   local v1 = [ap - 1];
@@ -235,6 +237,57 @@ func evaluate_transition_0{range_check_ptr} (
 
   return ();
 }
+func evaluate_boundary_0{range_check_ptr} (
+  frame: EvaluationFrame,
+  b_evaluations: felt*,
+  periodic: felt*,
+) {
+  alloc_locals;
+  let cur = frame.current;
+  let nxt = frame.next;
+  let row = frame.row;
+
+// BOUNDARY CONSTRAINTS
+
+  local v32 = cur[1];
+  local v33 = public[0];
+  sub_g(v32, v33);
+  local v31 = [ap - 1];
+  assert b_evaluations[0] = v31;
+
+  local v35 = cur[2];
+  local v36 = public[1];
+  sub_g(v35, v36);
+  local v34 = [ap - 1];
+  assert b_evaluations[1] = v34;
+
+  local v38 = cur[3];
+  local v39 = public[2];
+  sub_g(v38, v39);
+  local v37 = [ap - 1];
+  assert b_evaluations[2] = v37;
+
+  local v41 = cur[1];
+  local v42 = public[0];
+  sub_g(v41, v42);
+  local v40 = [ap - 1];
+  assert b_evaluations[3] = v40;
+
+  local v44 = cur[2];
+  local v45 = public[1];
+  sub_g(v44, v45);
+  local v43 = [ap - 1];
+  assert b_evaluations[4] = v43;
+
+  local v47 = cur[3];
+  local v48 = public[2];
+  sub_g(v47, v48);
+  local v46 = [ap - 1];
+  assert b_evaluations[5] = v46;
+
+
+  return ();
+}
 
 // SEGMENT 1 size 1
 // ===============================================
@@ -249,17 +302,41 @@ func evaluate_transition_1{range_check_ptr} (
   let nxt = frame.next;
   let row = frame.row;
 
-  local v32 = nxt[1];
-  local v34 = cur[0];
-  local v36 = cur[3];
-  local v37 = rand[0];
-  add_g(v36, v37);
-  local v35 = [ap - 1];
-  mul_g(v34, v35);
-  local v33 = [ap - 1];
-  sub_g(v32, v33);
-  local v31 = [ap - 1];
-  assert t_evaluations[0] = v31;
+// TRANSITION CONSTRAINTS
+
+  local v50 = nxt[1];
+  local v52 = cur[0];
+  local v54 = cur[3];
+  local v55 = rand[0];
+  add_g(v54, v55);
+  local v53 = [ap - 1];
+  mul_g(v52, v53);
+  local v51 = [ap - 1];
+  sub_g(v50, v51);
+  local v49 = [ap - 1];
+  assert t_evaluations[0] = v49;
+
+
+  return ();
+}
+func evaluate_boundary_1{range_check_ptr} (
+  frame: EvaluationFrame,
+  b_evaluations: felt*,
+  periodic: felt*,
+  rand: felt*,
+) {
+  alloc_locals;
+  let cur = frame.current;
+  let nxt = frame.next;
+  let row = frame.row;
+
+// BOUNDARY CONSTRAINTS
+
+  local v57 = cur[0];
+  local v58 = 1;
+  sub_g(v57, v58);
+  local v56 = [ap - 1];
+  assert b_evaluations[0] = v56;
 
 
   return ();

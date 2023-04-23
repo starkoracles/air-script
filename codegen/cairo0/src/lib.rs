@@ -209,7 +209,7 @@ impl CodeGenerator {
         }
       }
       Value::PeriodicColumn(index, length) => "periodic[".to_string() + &index.to_string() + " + mod(row, " + &length.to_string() + ")" + "]",
-      Value::PublicInput(_, index) => "punlic[".to_string() + "]",
+      Value::PublicInput(_, index) => "public[".to_string() + &index.to_string() + "]",
       Value::RandomValue(x) => "rand[".to_string() + &x.to_string() + "]",
     }
   }
@@ -286,14 +286,45 @@ impl CodeGenerator {
          "  let row = frame.row;\n\n"
        ;
             
-       // just validity constraints
+       // transition constraints
+       s = s + "// TRANSITION CONSTRAINTS\n\n";
        let vc = &self.integrity_constraints[i];
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in vc.iter().enumerate() {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
         let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
         let eval = &self.ascairo(&r, &w.index, &mut counter);
-         s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n\n";
+        s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n\n";
+       }
+
+       s = s + "\n  return ();\n";
+       s = s + "}\n";
+
+       s = s + 
+         "func evaluate_boundary_" + &i.to_string() + "{range_check_ptr} (\n" + 
+         "  frame: EvaluationFrame,\n" + 
+         "  b_evaluations: felt*,\n" + 
+         "  periodic: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
+         { if i > 0 { "  rand: felt*,\n" } else { "" }} + 
+         ") {\n" + 
+         "  alloc_locals;\n" + 
+         "  let cur = frame.current;\n" + 
+         "  let nxt = frame.next;\n" + 
+         "  let row = frame.row;\n\n"
+       ;
+            
+
+       // boundary constraints
+       s = s + "// BOUNDARY CONSTRAINTS\n\n";
+       let bc = &self.boundary_constraints[i];
+       //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
+       for (i, w) in bc.iter().enumerate() {
+         //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
+        let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
+        let eval = &self.ascairo(&r, &w.index, &mut counter);
+        s = s + &eval + "  assert b_evaluations[" + &i.to_string() + "] = " + &r + ";\n\n";
+
+
        } // constraints
 
        s = s + "\n  return ();\n";
