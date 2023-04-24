@@ -164,7 +164,6 @@ struct EvaluationFrame {
   current: felt*,
   next_len: felt,
   next: felt*,
-  row: felt,
 }
 
 // SEGMENT 0 size 4
@@ -172,13 +171,11 @@ struct EvaluationFrame {
 func evaluate_transition_0{range_check_ptr} (
   frame: EvaluationFrame,
   t_evaluations: felt*,
-  periodic: felt*,
+  periodic_row: felt*,
 ) {
   alloc_locals;
   let cur = frame.current;
   let nxt = frame.next;
-  let row = frame.row;
-
 // TRANSITION CONSTRAINTS
 
   local v3 = cur[0];
@@ -189,7 +186,7 @@ func evaluate_transition_0{range_check_ptr} (
   local v0 = [ap - 1];
   assert t_evaluations[0] = v0;
 
-  local v7 = periodic[0 + mod(row, 8)];
+  local v7 = periodic_row[0];
   local v9 = nxt[1];
   local v10 = cur[0];
   sub_g(v9, v10);
@@ -240,13 +237,11 @@ func evaluate_transition_0{range_check_ptr} (
 func evaluate_boundary_0{range_check_ptr} (
   frame: EvaluationFrame,
   b_evaluations: felt*,
-  periodic: felt*,
+  public: felt*,
 ) {
   alloc_locals;
   let cur = frame.current;
   let nxt = frame.next;
-  let row = frame.row;
-
 // BOUNDARY CONSTRAINTS
 
   local v32 = cur[1];
@@ -294,14 +289,12 @@ func evaluate_boundary_0{range_check_ptr} (
 func evaluate_transition_1{range_check_ptr} (
   frame: EvaluationFrame,
   t_evaluations: felt*,
-  periodic: felt*,
+  periodic_row: felt*,
   rand: felt*,
 ) {
   alloc_locals;
   let cur = frame.current;
   let nxt = frame.next;
-  let row = frame.row;
-
 // TRANSITION CONSTRAINTS
 
   local v50 = nxt[1];
@@ -322,14 +315,12 @@ func evaluate_transition_1{range_check_ptr} (
 func evaluate_boundary_1{range_check_ptr} (
   frame: EvaluationFrame,
   b_evaluations: felt*,
-  periodic: felt*,
+  public: felt*,
   rand: felt*,
 ) {
   alloc_locals;
   let cur = frame.current;
   let nxt = frame.next;
-  let row = frame.row;
-
 // BOUNDARY CONSTRAINTS
 
   local v57 = cur[0];

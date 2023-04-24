@@ -208,7 +208,7 @@ impl CodeGenerator {
           "nxt[".to_string() + &offset.to_string() + "]"
         }
       }
-      Value::PeriodicColumn(index, length) => "periodic[".to_string() + &index.to_string() + " + mod(row, " + &length.to_string() + ")" + "]",
+      Value::PeriodicColumn(index, length) => "periodic_row[".to_string() + &index.to_string() + "]",
       Value::PublicInput(_, index) => "public[".to_string() + &index.to_string() + "]",
       Value::RandomValue(x) => "rand[".to_string() + &x.to_string() + "]",
     }
@@ -264,7 +264,6 @@ impl CodeGenerator {
        "  current: felt*,\n" +
        "  next_len: felt,\n" +
        "  next: felt*,\n" +
-       "  row: felt,\n" + 
        "}\n"
      ;
 
@@ -277,13 +276,12 @@ impl CodeGenerator {
          "func evaluate_transition_" + &i.to_string() + "{range_check_ptr} (\n" + 
          "  frame: EvaluationFrame,\n" + 
          "  t_evaluations: felt*,\n" + 
-         "  periodic: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
+         "  periodic_row: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
          { if i > 0 { "  rand: felt*,\n" } else { "" }} + 
          ") {\n" + 
          "  alloc_locals;\n" + 
          "  let cur = frame.current;\n" + 
-         "  let nxt = frame.next;\n" + 
-         "  let row = frame.row;\n\n"
+         "  let nxt = frame.next;\n"
        ;
             
        // transition constraints
@@ -304,13 +302,12 @@ impl CodeGenerator {
          "func evaluate_boundary_" + &i.to_string() + "{range_check_ptr} (\n" + 
          "  frame: EvaluationFrame,\n" + 
          "  b_evaluations: felt*,\n" + 
-         "  periodic: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
+         "  public: felt*,\n" + 
          { if i > 0 { "  rand: felt*,\n" } else { "" }} + 
          ") {\n" + 
          "  alloc_locals;\n" + 
          "  let cur = frame.current;\n" + 
-         "  let nxt = frame.next;\n" + 
-         "  let row = frame.row;\n\n"
+         "  let nxt = frame.next;\n" 
        ;
             
 
