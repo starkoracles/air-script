@@ -39,3 +39,8 @@ AirScript is an open project and we welcome everyone to contribute! If you are i
 ## License
 
 This project is [MIT licensed](./LICENSE).
+
+
+## Tests
+1. `git submodule update --init --recursive`
+1. `cargo run --bin winterfell --release`

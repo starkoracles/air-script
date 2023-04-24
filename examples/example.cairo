@@ -149,7 +149,7 @@ func pow_g{range_check_ptr}(base, exp) -> felt {
 }
 
 
-// Air name ExampleAir 2 segments
+// Air name ExampleAir 1 segments
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
 
@@ -279,55 +279,6 @@ func evaluate_boundary_0{range_check_ptr} (
   sub_g(v47, v48);
   local v46 = [ap - 1];
   assert b_evaluations[5] = v46;
-
-
-  return ();
-}
-
-// SEGMENT 1 size 1
-// ===============================================
-func evaluate_transition_1{range_check_ptr} (
-  frame: EvaluationFrame,
-  t_evaluations: felt*,
-  periodic_row: felt*,
-  rand: felt*,
-) {
-  alloc_locals;
-  let cur = frame.current;
-  let nxt = frame.next;
-// TRANSITION CONSTRAINTS
-
-  local v50 = nxt[1];
-  local v52 = cur[0];
-  local v54 = cur[3];
-  local v55 = rand[0];
-  add_g(v54, v55);
-  local v53 = [ap - 1];
-  mul_g(v52, v53);
-  local v51 = [ap - 1];
-  sub_g(v50, v51);
-  local v49 = [ap - 1];
-  assert t_evaluations[0] = v49;
-
-
-  return ();
-}
-func evaluate_boundary_1{range_check_ptr} (
-  frame: EvaluationFrame,
-  b_evaluations: felt*,
-  public: felt*,
-  rand: felt*,
-) {
-  alloc_locals;
-  let cur = frame.current;
-  let nxt = frame.next;
-// BOUNDARY CONSTRAINTS
-
-  local v57 = cur[0];
-  local v58 = 1;
-  sub_g(v57, v58);
-  local v56 = [ap - 1];
-  assert b_evaluations[0] = v56;
 
 
   return ();
