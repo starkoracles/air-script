@@ -43,4 +43,6 @@ This project is [MIT licensed](./LICENSE).
 
 ## Tests
 1. `git submodule update --init --recursive`
+1. `cargo run --bin airc -- transpile -i examples/example.air`
+1. `cp examples/example.rs examples/tests/winterfell/src/example.rs`
 1. `cargo run --bin winterfell --release`
