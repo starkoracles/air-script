@@ -1,0 +1,3 @@
+[submodule "examples/tests/winterfell/winterfell-pkg"]
+	path = examples/tests/winterfell/winterfell-pkg
+	url = git@github.com:starkoracles/winterfell.git

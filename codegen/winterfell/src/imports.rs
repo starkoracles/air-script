@@ -17,4 +17,5 @@ pub(super) fn add_imports(scope: &mut Scope) {
     scope.import("winter_utils::collections", "Vec");
     scope.import("winter_utils", "ByteWriter");
     scope.import("winter_utils", "Serializable");
+    scope.import("winter_math", "ToElements");
 }
