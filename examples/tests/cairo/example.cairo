@@ -224,6 +224,17 @@ func evaluate_transition_0{range_check_ptr} (
 
   return ();
 }
+
+func degrees_0() -> felt* {
+  let (d) = alloc();
+  assert [d + 0] = 2;
+  assert [d + 1] = 1;
+  assert [d + 2] = 2;
+  assert [d + 3] = 3;
+
+  return (d);
+}
+
 func evaluate_boundary_0{range_check_ptr} (
   frame: EvaluationFrame,
   b_evaluations: felt*,
