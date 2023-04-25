@@ -292,7 +292,9 @@ impl CodeGenerator {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
         let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
         let eval = &self.ascairo(&r, &w.index, &mut counter);
-        s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n\n";
+        s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
+        let degree = &self.graph.degree(&w.index).base();
+        s = s + "    // deg = " + &degree.to_string() + "\n\n";
        }
 
        s = s + "\n  return ();\n";

@@ -185,6 +185,7 @@ func evaluate_transition_0{range_check_ptr} (
   sub_g(v1, v2);
   local v0 = [ap - 1];
   assert t_evaluations[0] = v0;
+    // deg = 2
 
   local v7 = periodic_row[0];
   local v9 = nxt[1];
@@ -197,6 +198,7 @@ func evaluate_transition_0{range_check_ptr} (
   sub_g(v5, v6);
   local v4 = [ap - 1];
   assert t_evaluations[1] = v4;
+    // deg = 1
 
   local v16 = 1;
   local v17 = cur[0];
@@ -215,6 +217,7 @@ func evaluate_transition_0{range_check_ptr} (
   sub_g(v12, v13);
   local v11 = [ap - 1];
   assert t_evaluations[2] = v11;
+    // deg = 2
 
   local v25 = cur[0];
   local v27 = cur[3];
@@ -230,6 +233,7 @@ func evaluate_transition_0{range_check_ptr} (
   sub_g(v23, v24);
   local v22 = [ap - 1];
   assert t_evaluations[3] = v22;
+    // deg = 3
 
 
   return ();
@@ -308,6 +312,7 @@ func evaluate_transition_1{range_check_ptr} (
   sub_g(v50, v51);
   local v49 = [ap - 1];
   assert t_evaluations[0] = v49;
+    // deg = 2
 
 
   return ();
