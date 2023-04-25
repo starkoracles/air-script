@@ -178,6 +178,7 @@ func evaluate_transition_0{range_check_ptr} (
   let nxt = frame.next;
 // TRANSITION CONSTRAINTS
 
+  // ((cur[0] ^ 2) - cur[0])
   let v3 = cur[0];
   let v1 = pow_g(v3, 2);
   let v2 = cur[0];
@@ -185,6 +186,7 @@ func evaluate_transition_0{range_check_ptr} (
   assert t_evaluations[0] = v0;
   // deg = 2
 
+  // ((periodic_row[0] * (nxt[0] - cur[0])) - 0)
   let v7 = periodic_row[0];
   let v9 = nxt[0];
   let v10 = cur[0];
@@ -195,6 +197,7 @@ func evaluate_transition_0{range_check_ptr} (
   assert t_evaluations[1] = v4;
   // deg = 1
 
+  // (((1 - cur[0]) * ((cur[3] - cur[1]) - cur[2])) - 0)
   let v16 = 1;
   let v17 = cur[0];
   let v14 = sub_g(v16, v17);
@@ -209,6 +212,7 @@ func evaluate_transition_0{range_check_ptr} (
   assert t_evaluations[2] = v11;
   // deg = 2
 
+  // ((cur[0] * (cur[3] - (cur[1] * cur[2]))) - 0)
   let v25 = cur[0];
   let v27 = cur[3];
   let v29 = cur[1];
@@ -245,31 +249,37 @@ func evaluate_boundary_0{range_check_ptr} (
   let nxt = frame.next;
 // BOUNDARY CONSTRAINTS
 
+  // (cur[1] - public[0])
   let v32 = cur[1];
   let v33 = public[0];
   let v31 = sub_g(v32, v33);
   assert b_evaluations[0] = v31;
 
+  // (cur[2] - public[1])
   let v35 = cur[2];
   let v36 = public[1];
   let v34 = sub_g(v35, v36);
   assert b_evaluations[1] = v34;
 
+  // (cur[3] - public[2])
   let v38 = cur[3];
   let v39 = public[2];
   let v37 = sub_g(v38, v39);
   assert b_evaluations[2] = v37;
 
+  // (cur[1] - public[0])
   let v41 = cur[1];
   let v42 = public[0];
   let v40 = sub_g(v41, v42);
   assert b_evaluations[3] = v40;
 
+  // (cur[2] - public[1])
   let v44 = cur[2];
   let v45 = public[1];
   let v43 = sub_g(v44, v45);
   assert b_evaluations[4] = v43;
 
+  // (cur[3] - public[2])
   let v47 = cur[3];
   let v48 = public[2];
   let v46 = sub_g(v47, v48);

@@ -238,6 +238,21 @@ impl CodeGenerator {
     }
   }
 
+  pub fn str(&self,  w: &NodeIndex ) -> String {
+    let op = &self.graph.node(w).op;
+    match op {
+      Operation::Value(x) =>  self.showvalue(x),
+      Operation::Add(a, b) => "(".to_string()  + &self.str(a) + " + " + &self.str(b) + ")",
+      Operation::Sub(a, b) => "(".to_string()  + &self.str(a) + " - " + &self.str(b) + ")", 
+      Operation::Mul(a, b) => "(".to_string()  + &self.str(a) + " * " + &self.str(b) + ")",
+      Operation::Exp(a, j) => "(".to_string()  + &self.str(a) + " ^ " + &j.to_string() + ")", 
+    }
+  }
+
+
+
+
+
   /// Returns a string of Cairo code implementing Cairo0
   pub fn generate(&self) -> String {
     let mut counter : i32 = 0;
@@ -284,6 +299,7 @@ impl CodeGenerator {
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in vc.iter().enumerate() {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
+        s = s + "  // " + &self.str(&w.index) + "\n";
         let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
         let eval = &self.ascairo(&r, &w.index, &mut counter);
         s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
@@ -322,6 +338,7 @@ impl CodeGenerator {
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in bc.iter().enumerate() {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
+        s = s + "  // " + &self.str(&w.index) + "\n";
         let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
         let eval = &self.ascairo(&r, &w.index, &mut counter);
         s = s + &eval + "  assert b_evaluations[" + &i.to_string() + "] = " + &r + ";\n\n";
