@@ -205,7 +205,7 @@ impl CodeGenerator {
         if *offset == 0 {
           "cur[".to_string() + &colidx + "]"
         } else {
-          "nxt[".to_string() + &offset.to_string() + "]"
+          "nxt[".to_string() + &colidx + "]"
         }
       }
       Value::PeriodicColumn(index, length) => "periodic_row[".to_string() + &index.to_string() + "]",
@@ -219,15 +219,13 @@ impl CodeGenerator {
     let vb = "v".to_string() +&counter.to_string(); *counter = *counter + 1;
     let sa = self.ascairo(&va, a, counter);
     let sb = self.ascairo(&vb, b, counter);
-    sa + &sb + 
-      "  " + op + "_g(" + &va + ", " + &vb + ");\n" + 
-      "  local " + r + " = [ap - 1];\n"
+    sa + &sb + &format!("  let {} = {}_g({}, {});\n", r, op, va, vb)
   }
 
   pub fn ascairo(&self, r:&str, w: &NodeIndex, counter: &mut i32) -> String {
     let op = &self.graph.node(w).op;
     match op {
-      Operation::Value(x) => "  local ".to_string() + r + " = " + &self.showvalue(x) + ";\n",
+      Operation::Value(x) => "  let ".to_string() + r + " = " + &self.showvalue(x) + ";\n",
       Operation::Add(a, b) => self.binop(r, "add", a, b, counter),
       Operation::Sub(a, b) => self.binop(r, "sub", a, b, counter),
       Operation::Mul(a, b) => self.binop(r, "mul", a, b, counter),
@@ -235,12 +233,7 @@ impl CodeGenerator {
         {
           let va = "v".to_string() +&counter.to_string(); *counter = *counter + 1;
           let sa = self.ascairo(&va, a, counter);
-          let r = 
-             sa + 
-             "  pow_g(" + &va + ", " + &j.to_string() + ")"  + ";\n" +
-             "  local " + r + " = [ap - 1];\n"
-          ; 
-          r 
+             sa + &format!("  let {} = pow_g({}, {});\n", r, va, j)
         },
     }
   }
@@ -295,7 +288,7 @@ impl CodeGenerator {
         let eval = &self.ascairo(&r, &w.index, &mut counter);
         s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
         let degree = &self.graph.degree(&w.index).base();
-        s = s + "    // deg = " + &degree.to_string() + "\n\n";
+        s = s + "  // deg = " + &degree.to_string() + "\n\n";
         degrees.push(*degree);
        }
 

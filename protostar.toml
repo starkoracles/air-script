@@ -1,0 +1,6 @@
+[project]
+protostar-version = "0.9.4"
+cairo_path = ["examples/tests/cairo"]
+
+[profile.unit.test]
+target = ["examples/tests/cairo"]
