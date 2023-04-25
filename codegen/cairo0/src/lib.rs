@@ -283,7 +283,8 @@ impl CodeGenerator {
          "  let cur = frame.current;\n" + 
          "  let nxt = frame.next;\n"
        ;
-            
+       let mut degrees: Vec<usize> = Vec::new();
+     
        // transition constraints
        s = s + "// TRANSITION CONSTRAINTS\n\n";
        let vc = &self.integrity_constraints[i];
@@ -295,10 +296,19 @@ impl CodeGenerator {
         s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
         let degree = &self.graph.degree(&w.index).base();
         s = s + "    // deg = " + &degree.to_string() + "\n\n";
+        degrees.push(*degree);
        }
 
        s = s + "\n  return ();\n";
-       s = s + "}\n";
+       s = s + "}\n\n";
+
+       s = s + "func degrees_" + &i.to_string() + "() -> felt* {\n"; 
+       s = s + "  let (d) = alloc();\n";
+       for (i, w) in degrees.iter().enumerate() {
+         s = s + "  assert [d + " + &i.to_string() + "] = " + &w.to_string() + ";\n";
+       }
+       s = s + "\n  return (d);\n";
+       s = s + "}\n\n";
 
        s = s + 
          "func evaluate_boundary_" + &i.to_string() + "{range_check_ptr} (\n" + 
