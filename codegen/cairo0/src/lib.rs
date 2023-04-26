@@ -163,7 +163,7 @@ func pow_g{range_check_ptr}(base, exp) -> felt {
 "#;
 
 pub fn fmtairinst(
-  airname: String,
+  airname: &str,
   main_segment_width: usize,
   aux_trace_width: usize,
   num_aux_segments: usize,
@@ -302,9 +302,28 @@ impl CodeGenerator {
      s = s + "from starkware.cairo.common.alloc import alloc\n";
      s = s + "from starkware.cairo.common.memcpy import memcpy\n";
      s = s + "\n";
-  
-     s = s + &fmtairinst("SomeAir".to_string(), 1,2,3,4,5);
- 
+
+
+     // count total number of transition and boundary constrainst
+     {
+       let mut nt : usize = 0;   
+       let mut nb :  usize = 0;   
+       let ns = self.segment_widths.len();
+       for (i, w) in self.segment_widths.iter().enumerate() {
+          nt = nt + &self.integrity_constraints[i].len();
+          nt = nt + &self.boundary_constraints[i].len();
+       }
+   
+       s = s + &fmtairinst(
+         &self.air_name, 
+         self.segment_widths[0].into(), // main_segment_width
+         99999999, // aux_trace_width
+         ns - 1, // num_aux_segments
+         nt, // num_transition_constraints
+         nb  // num_boundary_counstraints
+       );
+     };
+
      s = s +
        "struct EvaluationFrame {\n" +
        "  current_len: felt,\n" +
