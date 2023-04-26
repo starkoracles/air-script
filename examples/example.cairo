@@ -153,11 +153,36 @@ func pow_g{range_check_ptr}(base, exp) -> felt {
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
 
-func exp (x:felt, t:felt) -> felt {
-  return (1); 
-}
-func mod(x:felt,y:felt) -> felt {
-  return (1); 
+
+func air_instance_new{range_check_ptr}(proof: StarkProof*, pub_inputs: PublicInputs*) -> AirInstance {
+    alloc_locals;
+    let (aux_segment_widths: felt*) = alloc();
+    let (aux_segment_rands: felt*) = alloc();
+
+    let (power) = pow(2, TWO_ADICITY - proof.context.log_trace_length);
+    let (trace_domain_generator) = pow(TWO_ADIC_ROOT_OF_UNITY, power);
+    
+    let log_lde_domain_size = proof.context.options.log_blowup_factor + proof.context.log_trace_length;
+    let (power) = pow(2, TWO_ADICITY - log_lde_domain_size);
+    let (lde_domain_generator) = pow(TWO_ADIC_ROOT_OF_UNITY, power);
+
+    // Configured for SomeAir
+    let res = AirInstance(
+        main_segment_width=1,
+        aux_trace_width=2,
+        aux_segment_widths=aux_segment_widths,
+        aux_segment_rands=aux_segment_rands,
+        num_aux_segments=3,
+        context=proof.context,
+        num_transition_constraints=4,
+        num_assertions=5,
+        ce_blowup_factor=4,
+        eval_frame_size=2,
+        trace_domain_generator=trace_domain_generator,
+        lde_domain_generator=lde_domain_generator,
+        pub_inputs=pub_inputs,
+    );
+    return res;
 }
 struct EvaluationFrame {
   current_len: felt,

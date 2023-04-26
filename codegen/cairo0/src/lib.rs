@@ -162,6 +162,48 @@ func pow_g{range_check_ptr}(base, exp) -> felt {
 
 "#;
 
+pub fn fmtairinst(
+  airname: String,
+  main_segment_width: usize,
+  aux_trace_width: usize,
+  num_aux_segments: usize,
+  num_transition_constraints: usize,
+  num_boundary_constraints: usize
+) -> String {
+return format!(r#"
+func air_instance_new{{range_check_ptr}}(proof: StarkProof*, pub_inputs: PublicInputs*) -> AirInstance {{
+    alloc_locals;
+    let (aux_segment_widths: felt*) = alloc();
+    let (aux_segment_rands: felt*) = alloc();
+
+    let (power) = pow(2, TWO_ADICITY - proof.context.log_trace_length);
+    let (trace_domain_generator) = pow(TWO_ADIC_ROOT_OF_UNITY, power);
+    
+    let log_lde_domain_size = proof.context.options.log_blowup_factor + proof.context.log_trace_length;
+    let (power) = pow(2, TWO_ADICITY - log_lde_domain_size);
+    let (lde_domain_generator) = pow(TWO_ADIC_ROOT_OF_UNITY, power);
+
+    // Configured for {airname}
+    let res = AirInstance(
+        main_segment_width={main_segment_width},
+        aux_trace_width={aux_trace_width},
+        aux_segment_widths=aux_segment_widths,
+        aux_segment_rands=aux_segment_rands,
+        num_aux_segments={num_aux_segments},
+        context=proof.context,
+        num_transition_constraints={num_transition_constraints},
+        num_assertions={num_boundary_constraints},
+        ce_blowup_factor=4,
+        eval_frame_size=2,
+        trace_domain_generator=trace_domain_generator,
+        lde_domain_generator=lde_domain_generator,
+        pub_inputs=pub_inputs,
+    );
+    return res;
+}}
+
+"#);}
+
 
 // GENERATE verifier for proof as Cairo v0.4
 // ================================================================================================
@@ -250,9 +292,6 @@ impl CodeGenerator {
   }
 
 
-
-
-
   /// Returns a string of Cairo code implementing Cairo0
   pub fn generate(&self) -> String {
     let mut counter : i32 = 0;
@@ -263,9 +302,9 @@ impl CodeGenerator {
      s = s + "from starkware.cairo.common.alloc import alloc\n";
      s = s + "from starkware.cairo.common.memcpy import memcpy\n";
      s = s + "\n";
-     s = s + "func exp (x:felt, t:felt) -> felt {\n  return (1); \n}\n";
-     s = s + "func mod(x:felt,y:felt) -> felt {\n  return (1); \n}\n";
-   
+  
+     s = s + &fmtairinst("SomeAir".to_string(), 1,2,3,4,5);
+ 
      s = s +
        "struct EvaluationFrame {\n" +
        "  current_len: felt,\n" +
