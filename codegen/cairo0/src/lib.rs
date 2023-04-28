@@ -153,24 +153,24 @@ impl CodeGenerator {
 
 
      // count total number of transition and boundary constrainst
-     {
-       let mut nt : usize = 0;   
-       let mut nb :  usize = 0;   
-       let ns = self.segment_widths.len();
-       for (i, w) in self.segment_widths.iter().enumerate() {
-          nt = nt + &self.integrity_constraints[i].len();
-          nt = nt + &self.boundary_constraints[i].len();
-       }
-   
-       s = s + &fmtairinst(
-         &self.air_name, 
-         self.segment_widths[0].into(), // main_segment_width
-         99999999, // aux_trace_width
-         ns - 1, // num_aux_segments
-         nt, // num_transition_constraints
-         nb  // num_boundary_counstraints
-       );
-     };
+     //{
+     //  let mut nt : usize = 0;   
+     //  let mut nb :  usize = 0;   
+     //  let ns = self.segment_widths.len();
+     //  for (i, w) in self.segment_widths.iter().enumerate() {
+     //     nt = nt + &self.integrity_constraints[i].len();
+     //     nt = nt + &self.boundary_constraints[i].len();
+     //  }
+     //  
+     //   s = s + &fmtairinst(
+     //     &self.air_name, 
+     //     self.segment_widths[0].into(), // main_segment_width
+     //     99999999, // aux_trace_width
+     //     ns - 1, // num_aux_segments
+     //     nt, // num_transition_constraints
+     //     nb  // num_boundary_counstraints
+     //   );
+     // };
 
      s = s +
        "struct EvaluationFrame {\n" +
@@ -260,14 +260,18 @@ impl CodeGenerator {
        s = s + "}\n";
 
        s = s + "// MERGE EVALUATIONS\n";
-       s = s + "func merge_" + &segment.to_string() + "(\n";
+       s = s + "func merge_" + &segment.to_string() + "{range_check_ptr}(\n";
        s = s + "  trace_length: felt,\n";
        s = s + "  target_degree: felt,\n";
        s = s + "  coeffs_transition_a: felt*,\n";
        s = s + "  coeffs_transition_b: felt*, \n";
-       s = s + "  t_evaluations: felt*, n";
-       s = s + ") {\n";
-       s = s + "  let sum = 0;\n";
+       s = s + "  t_evaluations: felt*, \n";
+       s = s + "  x: felt, \n";
+       s = s + "  z: felt, \n";
+       s = s + ") -> felt {\n";
+       s = s + "  alloc_locals;\n";
+       s = s + "  local sum_0 = 0;\n";
+       let mut counter = 0;
        for deg in 0 ..maxdeg {
          let mut ntrans = 0;
          for (tr, trdeg) in degrees.iter().enumerate() {
@@ -278,21 +282,22 @@ impl CodeGenerator {
            s = s + "\n  // Merge degree "+ &deg.to_string() +"\n";
            s = s + "  let evaluation_degree = "+&deg.to_string() +" * (trace_length - 1);\n";
            s = s + "  let degree_adjustment = target_degree - evaluation_degree;\n";
-           s = s + "  let (xp) = pow_g(x, degree_adjustment);\n";
+           s = s + "  let xp = pow_g(x, degree_adjustment);\n";
            for (tr, trdeg) in degrees.iter().enumerate() {
              if deg == *trdeg {
                let trno = &tr.to_string();
                s = s + "\n  // Include transition " + &trno + "\n";
                s = s + "  let v1 = mul_g(coeffs_transition_b["+&trno+"],  xp);\n";
-               s = s + "  let v2 =  add_g(coeffs_transition_a["+ &trno +"], v1);\n";
+               s = s + "  let v2 = add_g(coeffs_transition_a["+ &trno +"], v1);\n";
                s = s + "  let v3 = mul_g(v2, t_evaluations["+&trno+"]);\n";
-               s = s + "  let sum = add_g(sum,v3);\n";
+               s = s + "  local sum_"+&(counter+1).to_string() +" = add_g(sum_"+&counter.to_string()+",v3);\n";
+               counter = counter + 1;
              }
            }
          }
        }
 
-       s = s + "\n  return (sum);\n";
+       s = s + "\n  return (sum_"+&counter.to_string()+");\n";
        s = s + "}\n";
 
 
