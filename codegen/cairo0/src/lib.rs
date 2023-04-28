@@ -269,18 +269,25 @@ impl CodeGenerator {
        s = s + ") {\n";
        s = s + "  let sum = 0;\n";
        for deg in 0 ..maxdeg {
-         s = s + "\n  // Merge degree "+ &deg.to_string() +"\n";
-         s = s + "  let evaluation_degree = 2 * (trace_length - 1);\n";
-         s = s + "  let degree_adjustment = target_degree - evaluation_degree;\n";
-         s = s + "  let (xp) = pow_g(x, degree_adjustment);\n";
+         let mut ntrans = 0;
          for (tr, trdeg) in degrees.iter().enumerate() {
-           if deg == *trdeg {
-             let trno = &tr.to_string();
-             s = s + "\n  // Include transition " + &trno + "\n";
-             s = s + "  let v1 = mul_g(coeffs_transition_b["+&trno+"],  xp);\n";
-             s = s + "  let v2 =  add_g(coeffs_transition_a["+ &trno +"], v1);\n";
-             s = s + "  let v3 = mul_g(v2, t_evaluations["+&trno+"]);\n";
-             s = s + "  let sum = add_g(sum,v3);\n";
+           if deg == *trdeg { ntrans = ntrans + 1; }
+         }
+
+         if ntrans > 0 {
+           s = s + "\n  // Merge degree "+ &deg.to_string() +"\n";
+           s = s + "  let evaluation_degree = "+&deg.to_string() +" * (trace_length - 1);\n";
+           s = s + "  let degree_adjustment = target_degree - evaluation_degree;\n";
+           s = s + "  let (xp) = pow_g(x, degree_adjustment);\n";
+           for (tr, trdeg) in degrees.iter().enumerate() {
+             if deg == *trdeg {
+               let trno = &tr.to_string();
+               s = s + "\n  // Include transition " + &trno + "\n";
+               s = s + "  let v1 = mul_g(coeffs_transition_b["+&trno+"],  xp);\n";
+               s = s + "  let v2 =  add_g(coeffs_transition_a["+ &trno +"], v1);\n";
+               s = s + "  let v3 = mul_g(v2, t_evaluations["+&trno+"]);\n";
+               s = s + "  let sum = add_g(sum,v3);\n";
+             }
            }
          }
        }
