@@ -182,16 +182,16 @@ impl CodeGenerator {
      ;
 
      // Each segment
-     for (i, w) in self.segment_widths.iter().enumerate() {
-       s = s + "\n// SEGMENT " + &i.to_string() + " size " + &w.to_string() + "\n" + 
+     for (segment, w) in self.segment_widths.iter().enumerate() {
+       s = s + "\n// SEGMENT " + &segment.to_string() + " size " + &w.to_string() + "\n" + 
          "// ===============================================\n"
        ;
        s = s + 
-         "func evaluate_transition_" + &i.to_string() + "{range_check_ptr} (\n" + 
+         "func evaluate_transition_" + &segment.to_string() + "{range_check_ptr} (\n" + 
          "  frame: EvaluationFrame,\n" + 
          "  t_evaluations: felt*,\n" + 
          "  periodic_row: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
-         { if i > 0 { "  rand: felt*,\n" } else { "" }} + 
+         { if segment > 0 { "  rand: felt*,\n" } else { "" }} + 
          ") {\n" + 
          "  alloc_locals;\n" + 
          "  let cur = frame.current;\n" + 
@@ -201,7 +201,7 @@ impl CodeGenerator {
      
        // transition constraints
        s = s + "// TRANSITION CONSTRAINTS\n\n";
-       let vc = &self.integrity_constraints[i];
+       let vc = &self.integrity_constraints[segment];
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in vc.iter().enumerate() {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
@@ -217,20 +217,23 @@ impl CodeGenerator {
        s = s + "\n  return ();\n";
        s = s + "}\n\n";
 
-       s = s + "func degrees_" + &i.to_string() + "() -> felt* {\n"; 
+       s = s + "func degrees_" + &segment.to_string() + "() -> felt* {\n"; 
        s = s + "  let (d) = alloc();\n";
+       let mut maxdeg : usize = 0;
        for (i, w) in degrees.iter().enumerate() {
+         maxdeg = maxdeg.max(*w);
          s = s + "  assert [d + " + &i.to_string() + "] = " + &w.to_string() + ";\n";
        }
+       s = s + "// maxdeg = " + &maxdeg.to_string() + "\n";
        s = s + "\n  return (d);\n";
        s = s + "}\n\n";
 
        s = s + 
-         "func evaluate_boundary_" + &i.to_string() + "{range_check_ptr} (\n" + 
+         "func evaluate_boundary_" + &segment.to_string() + "{range_check_ptr} (\n" + 
          "  frame: EvaluationFrame,\n" + 
          "  b_evaluations: felt*,\n" + 
          "  public: felt*,\n" + 
-         { if i > 0 { "  rand: felt*,\n" } else { "" }} + 
+         { if segment > 0 { "  rand: felt*,\n" } else { "" }} + 
          ") {\n" + 
          "  alloc_locals;\n" + 
          "  let cur = frame.current;\n" + 
@@ -240,7 +243,7 @@ impl CodeGenerator {
 
        // boundary constraints
        s = s + "// BOUNDARY CONSTRAINTS\n\n";
-       let bc = &self.boundary_constraints[i];
+       let bc = &self.boundary_constraints[segment];
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in bc.iter().enumerate() {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
@@ -252,8 +255,39 @@ impl CodeGenerator {
 
        } // constraints
 
+
        s = s + "\n  return ();\n";
        s = s + "}\n";
+
+       s = s + "// MERGE EVALUATIONS\n";
+       s = s + "func merge_" + &segment.to_string() + "(\n";
+       s = s + "  trace_length: felt,\n";
+       s = s + "  target_degree: felt,\n";
+       s = s + "  coeffs_transition_a: felt*,\n";
+       s = s + "  coeffs_transition_b: felt*, \n";
+       s = s + "  t_evaluations: felt*, n";
+       s = s + ") {\n";
+       s = s + "  let sum = 0;\n";
+       for deg in 0 ..maxdeg {
+         s = s + "\n  // Merge degree "+ &deg.to_string() +"\n";
+         s = s + "  let evaluation_degree = 2 * (trace_length - 1);\n";
+         s = s + "  let degree_adjustment = target_degree - evaluation_degree;\n";
+         s = s + "  let (xp) = pow_g(x, degree_adjustment);\n";
+         for (tr, trdeg) in degrees.iter().enumerate() {
+           if deg == *trdeg {
+             let trno = &tr.to_string();
+             s = s + "\n  // Include transition " + &trno + "\n";
+             s = s + "  let v1 = mul_g(coeffs_transition_b["+&trno+"],  xp);\n";
+             s = s + "  let v2 =  add_g(coeffs_transition_a["+ &trno +"], v1);\n";
+             s = s + "  let v3 = mul_g(v2, t_evaluations["+&trno+"]);\n";
+             s = s + "  let sum = add_g(sum,v3);\n";
+           }
+         }
+       }
+
+       s = s + "\n  return (sum);\n";
+       s = s + "}\n";
+
 
      } // segments
 
