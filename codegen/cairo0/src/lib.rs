@@ -297,7 +297,7 @@ impl CodeGenerator {
          }
        }
 
-       s = s + "\n  return (sum_"+&counter.to_string()+");\n";
+       s = s + "\n  return div_g(sum_"+&counter.to_string()+",z);\n";
        s = s + "}\n";
 
 
