@@ -6,50 +6,9 @@ use ir::PublicInput;
 use ir::constraints::AlgebraicGraph;
 use ir::constraints::ConstraintRoot;
 use ir::constraints::Operation;
+use ir::constraints::ConstraintDomain;
 use ir::NodeIndex;
 use ir::Value;
-
-pub fn fmtairinst(
-  airname: &str,
-  main_segment_width: usize,
-  aux_trace_width: usize,
-  num_aux_segments: usize,
-  num_transition_constraints: usize,
-  num_boundary_constraints: usize
-) -> String {
-return format!(r#"
-func air_instance_new{{range_check_ptr}}(proof: StarkProof*, pub_inputs: PublicInputs*) -> AirInstance {{
-    alloc_locals;
-    let (aux_segment_widths: felt*) = alloc();
-    let (aux_segment_rands: felt*) = alloc();
-
-    let (power) = pow(2, TWO_ADICITY - proof.context.log_trace_length);
-    let (trace_domain_generator) = pow(TWO_ADIC_ROOT_OF_UNITY, power);
-    
-    let log_lde_domain_size = proof.context.options.log_blowup_factor + proof.context.log_trace_length;
-    let (power) = pow(2, TWO_ADICITY - log_lde_domain_size);
-    let (lde_domain_generator) = pow(TWO_ADIC_ROOT_OF_UNITY, power);
-
-    // Configured for {airname}
-    let res = AirInstance(
-        main_segment_width={main_segment_width},
-        aux_trace_width={aux_trace_width},
-        aux_segment_widths=aux_segment_widths,
-        aux_segment_rands=aux_segment_rands,
-        num_aux_segments={num_aux_segments},
-        context=proof.context,
-        num_transition_constraints={num_transition_constraints},
-        num_assertions={num_boundary_constraints},
-        ce_blowup_factor=4,
-        eval_frame_size=2,
-        trace_domain_generator=trace_domain_generator,
-        lde_domain_generator=lde_domain_generator,
-        pub_inputs=pub_inputs,
-    );
-    return res;
-}}
-
-"#);}
 
 
 // GENERATE verifier for proof as Cairo v0.4
@@ -197,7 +156,7 @@ impl CodeGenerator {
          "  let cur = frame.current;\n" + 
          "  let nxt = frame.next;\n"
        ;
-       let mut degrees: Vec<usize> = Vec::new();
+       let mut transition_degrees: Vec<usize> = Vec::new();
      
        // transition constraints
        s = s + "// TRANSITION CONSTRAINTS\n\n";
@@ -211,21 +170,14 @@ impl CodeGenerator {
         s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
         let degree = &self.graph.degree(&w.index).base();
         s = s + "  // deg = " + &degree.to_string() + "\n\n";
-        degrees.push(*degree);
+        transition_degrees.push(*degree);
+       }
+       let mut transition_maxdeg : usize = 0;
+       for (i, w) in transition_degrees.iter().enumerate() {
+         transition_maxdeg = transition_maxdeg.max(*w);
        }
 
        s = s + "\n  return ();\n";
-       s = s + "}\n\n";
-
-       s = s + "func degrees_" + &segment.to_string() + "() -> felt* {\n"; 
-       s = s + "  let (d) = alloc();\n";
-       let mut maxdeg : usize = 0;
-       for (i, w) in degrees.iter().enumerate() {
-         maxdeg = maxdeg.max(*w);
-         s = s + "  assert [d + " + &i.to_string() + "] = " + &w.to_string() + ";\n";
-       }
-       s = s + "// maxdeg = " + &maxdeg.to_string() + "\n";
-       s = s + "\n  return (d);\n";
        s = s + "}\n\n";
 
        s = s + 
@@ -236,13 +188,15 @@ impl CodeGenerator {
          { if segment > 0 { "  rand: felt*,\n" } else { "" }} + 
          ") {\n" + 
          "  alloc_locals;\n" + 
-         "  let cur = frame.current;\n" + 
-         "  let nxt = frame.next;\n" 
+         "  let cur = frame.current;\n"
        ;
             
 
        // boundary constraints
        s = s + "// BOUNDARY CONSTRAINTS\n\n";
+       let mut boundary_degrees: Vec<usize> = Vec::new();
+       let mut boundary_domain: Vec<ConstraintDomain> = Vec::new();
+
        let bc = &self.boundary_constraints[segment];
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in bc.iter().enumerate() {
@@ -250,17 +204,25 @@ impl CodeGenerator {
         s = s + "  // " + &self.str(&w.index) + "\n";
         let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
         let eval = &self.ascairo(&r, &w.index, &mut counter);
-        s = s + &eval + "  assert b_evaluations[" + &i.to_string() + "] = " + &r + ";\n\n";
-
+        s = s + &eval + "  assert b_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
+        let degree = &self.graph.degree(&w.index).base();
+        s = s + "  // deg = " + &degree.to_string() + ", Domain: " + &w.domain.to_string() + "\n\n";
+        boundary_degrees.push(*degree);
+        boundary_domain.push(w.domain) 
 
        } // constraints
+
+       let mut boundary_maxdeg : usize = 0;
+       for (i, w) in boundary_degrees.iter().enumerate() {
+         boundary_maxdeg = boundary_maxdeg.max(*w);
+       }
 
 
        s = s + "\n  return ();\n";
        s = s + "}\n";
 
        s = s + "// MERGE EVALUATIONS\n";
-       s = s + "func merge_" + &segment.to_string() + "{range_check_ptr}(\n";
+       s = s + "func merge_transitions_" + &segment.to_string() + "{range_check_ptr}(\n";
        s = s + "  trace_length: felt,\n";
        s = s + "  target_degree: felt,\n";
        s = s + "  coeffs_transition_a: felt*,\n";
@@ -272,9 +234,9 @@ impl CodeGenerator {
        s = s + "  alloc_locals;\n";
        s = s + "  local sum_0 = 0;\n";
        let mut counter = 0;
-       for deg in 0 ..maxdeg {
+       for deg in 0 .. (transition_maxdeg+1) {
          let mut ntrans = 0;
-         for (tr, trdeg) in degrees.iter().enumerate() {
+         for (_tr, trdeg) in transition_degrees.iter().enumerate() {
            if deg == *trdeg { ntrans = ntrans + 1; }
          }
 
@@ -283,7 +245,7 @@ impl CodeGenerator {
            s = s + "  let evaluation_degree = "+&deg.to_string() +" * (trace_length - 1);\n";
            s = s + "  let degree_adjustment = target_degree - evaluation_degree;\n";
            s = s + "  let xp = pow_g(x, degree_adjustment);\n";
-           for (tr, trdeg) in degrees.iter().enumerate() {
+           for (tr, trdeg) in transition_degrees.iter().enumerate() {
              if deg == *trdeg {
                let trno = &tr.to_string();
                s = s + "\n  // Include transition " + &trno + "\n";
@@ -300,8 +262,79 @@ impl CodeGenerator {
        s = s + "\n  return div_g(sum_"+&counter.to_string()+",z);\n";
        s = s + "}\n";
 
+// WARNING: THIS CODE ONLY HANDLES BOUNDARIES ON MAIN SEGMENT
+// AUX SEGMENT REQUIRES SLIGHTLY DIFFERENT CALCULATION
+// USES TRACE LENGTH INSTEAD OF PUBLIC INPUT STEPS
+       s = s + "func merge_boundary_" + &segment.to_string() + "{range_check_ptr}(\n";
+       s = s + "  trace_length: felt,\n";
+       s = s + "  target_degree: felt,\n";
+       s = s + "  blowup_factor: felt,\n";
+       s = s + "  coeffs_boundary_a: felt*,\n";
+       s = s + "  coeffs_boundary_b: felt*, \n";
+       s = s + "  b_evaluations: felt*, \n";
+       s = s + "  trace_domain_generator: felt, \n";
+       s = s + "  npub_steps: felt, \n";
+       s = s + "  z: felt, \n";
+       s = s + ") -> felt {\n";
+       s = s + "  alloc_locals;\n";
+
+       s = s + "  let composition_degree = trace_length * blowup_factor - 1;\n";
+       s = s + "  let trace_poly_degree = trace_length  - 1;\n";
+       s = s + "  let divisor_degree = 1;\n";
+       s = s + "  let target_degree =  composition_degree + divisor_degree;\n";
+       s = s + "  let first_z = z - 1;\n\n";
+       s = s + "  let g = trace_domain_generator;\n\n";
+       s = s + "  let gn = pow_g(g,npub_steps - 1);\n\n";
+       s = s + "  let last_z = z - gn;\n";
+       s = s + "\n";
+       s = s + "  local first_sum_0 = 0;\n";
+       s = s + "  local last_sum_0 = 0;\n";
+       let mut first_counter = 0;
+       let mut last_counter = 0;
+       for deg in 0 ..(boundary_maxdeg+1) {
+         let mut ntrans = 0;
+         for (__tr, trdeg) in boundary_degrees.iter().enumerate() {
+           if deg == *trdeg { ntrans = ntrans + 1; }
+         }
+
+         if ntrans > 0 {
+           s = s + "\n  // Merge degree "+ &deg.to_string() +"\n";
+           s = s + "  let evaluation_degree = "+&deg.to_string() +" * (trace_length - 1);\n";
+           s = s + "  let degree_adjustment = target_degree - evaluation_degree;\n";
+           s = s + "  let xp = pow_g(z, degree_adjustment);\n";
+           for (tr, trdeg) in boundary_degrees.iter().enumerate() {
+             if deg == *trdeg {
+               let trno = &tr.to_string();
+               s = s + "\n  // Include boundary " + &trno + "\n";
+               s = s + "  let v1 = mul_g(coeffs_boundary_b["+&trno+"],  xp);\n";
+               s = s + "  let v2 = add_g(coeffs_boundary_a["+ &trno +"], v1);\n";
+               s = s + "  let v3 = mul_g(v2, b_evaluations["+&trno+"]);\n";
+               match boundary_domain[tr] {
+                 ConstraintDomain::FirstRow => {
+                    s = s + "  local first_sum_"+&(first_counter+1).to_string() +" = add_g(first_sum_"+&first_counter.to_string()+",v3);\n";
+                    first_counter = first_counter + 1;
+                 },
+                 ConstraintDomain::LastRow => {
+                    s = s + "  local last_sum_"+&(last_counter+1).to_string() +" = add_g(last_sum_"+&last_counter.to_string()+",v3);\n";
+                    last_counter = last_counter + 1;
+                 },
+                 _ => { panic!("Bad Boundary Constraint Domain"); }
+               }
+             }
+           }
+         }
+       }
+
+       s = s + "\n";
+       s = s + "  let first = div_g(first_sum_"+&first_counter.to_string() + ",first_z);\n";
+       s = s + "  let last = div_g(last_sum_"+&last_counter.to_string() + ",last_z);\n";
+       s = s + "  return add_g(first,last);\n";
+       s = s + "}\n";
+
 
      } // segments
+
+     s = s + "\n// PUT CONSTRAINT EVALUATION FUNCTION HERE\n";
 
      return s + "\n";
   } // generate
