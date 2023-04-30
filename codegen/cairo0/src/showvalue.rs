@@ -3,6 +3,7 @@ use ir::constraints::AlgebraicGraph;
 use ir::NodeIndex;
 use ir::constraints::Operation;
 
+/// Cairo display of AlgebraicGraph::Value
 pub fn showvalue(x: &Value) -> String {
   match x {
     Value::BoundConstant(_) => "BoundConstant".to_string(),
@@ -31,6 +32,7 @@ pub fn binop(graph:&AlgebraicGraph, r:&str, op:&str, a: &NodeIndex, b:&NodeIndex
 }
 
 
+/// Cairo evaluation of Air constraint from AlgenbraicGraph
 pub fn ascairo(graph: &AlgebraicGraph, r:&str, w: &NodeIndex, counter: &mut i32) -> String {
   let op = &graph.node(w).op;
   match op {
@@ -47,15 +49,16 @@ pub fn ascairo(graph: &AlgebraicGraph, r:&str, w: &NodeIndex, counter: &mut i32)
   }
 }
 
-  pub fn str(graph:&AlgebraicGraph,  w: &NodeIndex ) -> String {
-    let op = &graph.node(w).op;
-    match op {
-      Operation::Value(x) =>  showvalue(x),
-      Operation::Add(a, b) => "(".to_string()  + &str(graph,a) + " + " + &str(graph,b) + ")",
-      Operation::Sub(a, b) => "(".to_string()  + &str(graph,a) + " - " + &str(graph,b) + ")", 
-      Operation::Mul(a, b) => "(".to_string()  + &str(graph,a) + " * " + &str(graph,b) + ")",
-      Operation::Exp(a, j) => "(".to_string()  + &str(graph,a) + " ^ " + &j.to_string() + ")", 
-    }
+/// Human readable costraint display
+pub fn str(graph:&AlgebraicGraph,  w: &NodeIndex ) -> String {
+  let op = &graph.node(w).op;
+  match op {
+    Operation::Value(x) =>  showvalue(x),
+    Operation::Add(a, b) => "(".to_string()  + &str(graph,a) + " + " + &str(graph,b) + ")",
+    Operation::Sub(a, b) => "(".to_string()  + &str(graph,a) + " - " + &str(graph,b) + ")", 
+    Operation::Mul(a, b) => "(".to_string()  + &str(graph,a) + " * " + &str(graph,b) + ")",
+    Operation::Exp(a, j) => "(".to_string()  + &str(graph,a) + " ^ " + &j.to_string() + ")", 
   }
+}
 
 

@@ -6,10 +6,13 @@ use ir::PublicInput;
 use ir::constraints::AlgebraicGraph;
 use ir::constraints::ConstraintRoot;
 use ir::constraints::ConstraintDomain;
-use ir::NodeIndex;
 
 mod showvalue;
 use showvalue::str;
+
+mod transition;
+mod boundary;
+
 
 // GENERATE verifier for proof as Cairo v0.4
 // ================================================================================================
@@ -47,11 +50,6 @@ impl CodeGenerator {
   }
 
 
-  pub fn ascairo(&self, r:&str, w: &NodeIndex, counter: &mut i32) -> String {
-    showvalue::ascairo(&self.graph, r, w, counter)
-  }
-
-
   /// Returns a string of Cairo code implementing Cairo0
   pub fn generate(&self) -> String {
     let mut counter : i32 = 0;
@@ -63,27 +61,6 @@ impl CodeGenerator {
      s = s + "from starkware.cairo.common.memcpy import memcpy\n";
      s = s + "from math_goldilocks import add_g, sub_g, mul_g, pow_g, div_g\n";
      s = s + "\n";
-
-
-     // count total number of transition and boundary constrainst
-     //{
-     //  let mut nt : usize = 0;   
-     //  let mut nb :  usize = 0;   
-     //  let ns = self.segment_widths.len();
-     //  for (i, w) in self.segment_widths.iter().enumerate() {
-     //     nt = nt + &self.integrity_constraints[i].len();
-     //     nt = nt + &self.boundary_constraints[i].len();
-     //  }
-     //  
-     //   s = s + &fmtairinst(
-     //     &self.air_name, 
-     //     self.segment_widths[0].into(), // main_segment_width
-     //     99999999, // aux_trace_width
-     //     ns - 1, // num_aux_segments
-     //     nt, // num_transition_constraints
-     //     nb  // num_boundary_counstraints
-     //   );
-     // };
 
      s = s +
        "struct EvaluationFrame {\n" +
@@ -99,81 +76,16 @@ impl CodeGenerator {
        s = s + "\n// SEGMENT " + &segment.to_string() + " size " + &w.to_string() + "\n" + 
          "// ===============================================\n"
        ;
-       s = s + 
-         "func evaluate_transition_" + &segment.to_string() + "{range_check_ptr} (\n" + 
-         "  frame: EvaluationFrame,\n" + 
-         "  t_evaluations: felt*,\n" + 
-         "  periodic_row: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
-         { if segment > 0 { "  rand: felt*,\n" } else { "" }} + 
-         ") {\n" + 
-         "  alloc_locals;\n" + 
-         "  let cur = frame.current;\n" + 
-         "  let nxt = frame.next;\n"
-       ;
-       let mut transition_degrees: Vec<usize> = Vec::new();
-     
-       // transition constraints
-       s = s + "// TRANSITION CONSTRAINTS\n\n";
-       let vc = &self.integrity_constraints[segment];
-       //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
-       for (i, w) in vc.iter().enumerate() {
-         //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
-        s = s + "  // " + &str(&self.graph,&w.index) + "\n";
-        let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
-        let eval = &self.ascairo(&r, &w.index, &mut counter);
-        s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
-        let degree = &self.graph.degree(&w.index).base();
-        s = s + "  // deg = " + &degree.to_string() + "\n\n";
-        transition_degrees.push(*degree);
-       }
-       let mut transition_maxdeg : usize = 0;
-       for w in transition_degrees.iter() {
-         transition_maxdeg = transition_maxdeg.max(*w);
-       }
-
-       s = s + "\n  return ();\n";
-       s = s + "}\n\n";
-
-       s = s + 
-         "func evaluate_boundary_" + &segment.to_string() + "{range_check_ptr} (\n" + 
-         "  frame: EvaluationFrame,\n" + 
-         "  b_evaluations: felt*,\n" + 
-         "  public: felt*,\n" + 
-         { if segment > 0 { "  rand: felt*,\n" } else { "" }} + 
-         ") {\n" + 
-         "  alloc_locals;\n" + 
-         "  let cur = frame.current;\n"
-       ;
-            
-
-       // boundary constraints
-       s = s + "// BOUNDARY CONSTRAINTS\n\n";
-       let mut boundary_degrees: Vec<usize> = Vec::new();
-       let mut boundary_domain: Vec<ConstraintDomain> = Vec::new();
-
-       let bc = &self.boundary_constraints[segment];
-       //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
-       for (i, w) in bc.iter().enumerate() {
-         //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
-        s = s + "  // " + &str(&self.graph,&w.index) + "\n";
-        let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
-        let eval = &self.ascairo(&r, &w.index, &mut counter);
-        s = s + &eval + "  assert b_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
-        let degree = &self.graph.degree(&w.index).base();
-        s = s + "  // deg = " + &degree.to_string() + ", Domain: " + &w.domain.to_string() + "\n\n";
-        boundary_degrees.push(*degree);
-        boundary_domain.push(w.domain) 
-
-       } // constraints
-
-       let mut boundary_maxdeg : usize = 0;
-       for w in boundary_degrees.iter() {
-         boundary_maxdeg = boundary_maxdeg.max(*w);
-       }
+       let (st,transition_degrees, transition_maxdeg) = 
+         transition::evaluate_transitions(&self.graph, segment,&self.integrity_constraints[segment])
+       ; 
+       s = s + &st;
 
 
-       s = s + "\n  return ();\n";
-       s = s + "}\n";
+       let (sb,boundary_degrees, boundary_maxdeg, boundary_domain) = 
+         boundary::evaluate_boundaries(&self.graph, segment,&self.boundary_constraints[segment])
+       ; 
+       s = s + &sb;
 
        s = s + "// MERGE EVALUATIONS\n";
        s = s + "func merge_transitions_" + &segment.to_string() + "{range_check_ptr}(\n";
