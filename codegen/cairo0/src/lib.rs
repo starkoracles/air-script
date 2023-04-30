@@ -8,8 +8,6 @@ use ir::constraints::ConstraintRoot;
 use ir::constraints::ConstraintDomain;
 
 mod showvalue;
-use showvalue::str;
-
 mod transition;
 mod boundary;
 
@@ -52,7 +50,6 @@ impl CodeGenerator {
 
   /// Returns a string of Cairo code implementing Cairo0
   pub fn generate(&self) -> String {
-    let mut counter : i32 = 0;
     // header
     let mut s = 
       "// Air name ".to_string() + &self.air_name + " " + &(self.segment_widths.len().to_string()) + " segments\n"
@@ -102,7 +99,7 @@ impl CodeGenerator {
        let mut counter = 0;
        for deg in 0 .. (transition_maxdeg+1) {
          let mut ntrans = 0;
-         for (_tr, trdeg) in transition_degrees.iter().enumerate() {
+         for trdeg in transition_degrees.iter() {
            if deg == *trdeg { ntrans = ntrans + 1; }
          }
 
@@ -159,7 +156,7 @@ impl CodeGenerator {
        let mut last_counter = 0;
        for deg in 0 ..(boundary_maxdeg+1) {
          let mut ntrans = 0;
-         for (__tr, trdeg) in boundary_degrees.iter().enumerate() {
+         for trdeg in boundary_degrees.iter() {
            if deg == *trdeg { ntrans = ntrans + 1; }
          }
 
