@@ -5,24 +5,27 @@ use ir::PublicInput;
 
 use ir::constraints::AlgebraicGraph;
 use ir::constraints::ConstraintRoot;
-use ir::constraints::Operation;
 use ir::constraints::ConstraintDomain;
 use ir::NodeIndex;
-use ir::Value;
 
+mod showvalue;
+use showvalue::str;
 
 // GENERATE verifier for proof as Cairo v0.4
 // ================================================================================================
 
 pub struct CodeGenerator {
-    air_name: String,
-    segment_widths: Vec<u16>,
-    constants: Vec<ConstantBinding>,
-    public_inputs: Vec<PublicInput>,
-    periodic_columns: Vec<PeriodicColumn>,
-    boundary_constraints: Vec<Vec<ConstraintRoot>>,
-    integrity_constraints: Vec<Vec<ConstraintRoot>>,
-    graph: AlgebraicGraph,
+  air_name: String,
+  segment_widths: Vec<u16>,
+  #[allow(unused)]
+  constants: Vec<ConstantBinding>,
+  #[allow(unused)]
+  public_inputs: Vec<PublicInput>,
+  #[allow(unused)]
+  periodic_columns: Vec<PeriodicColumn>,
+  boundary_constraints: Vec<Vec<ConstraintRoot>>,
+  integrity_constraints: Vec<Vec<ConstraintRoot>>,
+  graph: AlgebraicGraph,
 }
 
 impl CodeGenerator {
@@ -43,58 +46,9 @@ impl CodeGenerator {
     }
   }
 
-  pub fn showvalue(&self, x: &Value) -> String {
-    match x {
-      Value::BoundConstant(_) => "BoundConstant".to_string(),
-      Value::InlineConstant(v) => v.to_string(),
-      Value::TraceElement(ita) => {
-        let offset = &ita.row_offset();
-        let colidx = &ita.col_idx().to_string();
-        if *offset == 0 {
-          "cur[".to_string() + &colidx + "]"
-        } else {
-          "nxt[".to_string() + &colidx + "]"
-        }
-      }
-      Value::PeriodicColumn(index, length) => "periodic_row[".to_string() + &index.to_string() + "]",
-      Value::PublicInput(_, index) => "public[".to_string() + &index.to_string() + "]",
-      Value::RandomValue(x) => "rand[".to_string() + &x.to_string() + "]",
-    }
-  }
-
-  pub fn binop(&self, r:&str, op:&str, a: &NodeIndex, b:&NodeIndex, counter: &mut i32) -> String {
-    let va = "v".to_string() +&counter.to_string(); *counter = *counter + 1;
-    let vb = "v".to_string() +&counter.to_string(); *counter = *counter + 1;
-    let sa = self.ascairo(&va, a, counter);
-    let sb = self.ascairo(&vb, b, counter);
-    sa + &sb + &format!("  let {} = {}_g({}, {});\n", r, op, va, vb)
-  }
 
   pub fn ascairo(&self, r:&str, w: &NodeIndex, counter: &mut i32) -> String {
-    let op = &self.graph.node(w).op;
-    match op {
-      Operation::Value(x) => "  let ".to_string() + r + " = " + &self.showvalue(x) + ";\n",
-      Operation::Add(a, b) => self.binop(r, "add", a, b, counter),
-      Operation::Sub(a, b) => self.binop(r, "sub", a, b, counter),
-      Operation::Mul(a, b) => self.binop(r, "mul", a, b, counter),
-      Operation::Exp(a, j) => 
-        {
-          let va = "v".to_string() +&counter.to_string(); *counter = *counter + 1;
-          let sa = self.ascairo(&va, a, counter);
-             sa + &format!("  let {} = pow_g({}, {});\n", r, va, j)
-        },
-    }
-  }
-
-  pub fn str(&self,  w: &NodeIndex ) -> String {
-    let op = &self.graph.node(w).op;
-    match op {
-      Operation::Value(x) =>  self.showvalue(x),
-      Operation::Add(a, b) => "(".to_string()  + &self.str(a) + " + " + &self.str(b) + ")",
-      Operation::Sub(a, b) => "(".to_string()  + &self.str(a) + " - " + &self.str(b) + ")", 
-      Operation::Mul(a, b) => "(".to_string()  + &self.str(a) + " * " + &self.str(b) + ")",
-      Operation::Exp(a, j) => "(".to_string()  + &self.str(a) + " ^ " + &j.to_string() + ")", 
-    }
+    showvalue::ascairo(&self.graph, r, w, counter)
   }
 
 
@@ -164,7 +118,7 @@ impl CodeGenerator {
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in vc.iter().enumerate() {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
-        s = s + "  // " + &self.str(&w.index) + "\n";
+        s = s + "  // " + &str(&self.graph,&w.index) + "\n";
         let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
         let eval = &self.ascairo(&r, &w.index, &mut counter);
         s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
@@ -173,7 +127,7 @@ impl CodeGenerator {
         transition_degrees.push(*degree);
        }
        let mut transition_maxdeg : usize = 0;
-       for (i, w) in transition_degrees.iter().enumerate() {
+       for w in transition_degrees.iter() {
          transition_maxdeg = transition_maxdeg.max(*w);
        }
 
@@ -201,7 +155,7 @@ impl CodeGenerator {
        //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
        for (i, w) in bc.iter().enumerate() {
          //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
-        s = s + "  // " + &self.str(&w.index) + "\n";
+        s = s + "  // " + &str(&self.graph,&w.index) + "\n";
         let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
         let eval = &self.ascairo(&r, &w.index, &mut counter);
         s = s + &eval + "  assert b_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
@@ -213,7 +167,7 @@ impl CodeGenerator {
        } // constraints
 
        let mut boundary_maxdeg : usize = 0;
-       for (i, w) in boundary_degrees.iter().enumerate() {
+       for w in boundary_degrees.iter() {
          boundary_maxdeg = boundary_maxdeg.max(*w);
        }
 
