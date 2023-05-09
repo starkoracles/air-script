@@ -1,6 +1,6 @@
 [project]
-protostar-version = "0.9.4"
-cairo_path = ["examples/tests/cairo"]
+protostar-version = "0.10.0"
 
 [profile.unit.test]
 target = ["examples/tests/cairo"]
+cairo-path = ["codegen/cairo0/src"]

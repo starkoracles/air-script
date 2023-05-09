@@ -48,7 +48,8 @@ This project is [MIT licensed](./LICENSE).
 ### Winterfell
 1. `cp examples/example.rs examples/tests/winterfell/src/example.rs`
 1. `cargo run --bin winterfell --release`
+1. The above will generate a example.wlog file containing the reference values for testing
 
 ### Cairo
-1. `cp cp examples/example.cairo examples/tests/cairo/`
+1. `cp examples/example.cairo examples/tests/cairo/`
 1. `protostar -p unit test`

@@ -1,6 +1,9 @@
+use std::fs::File;
 use std::marker::PhantomData;
 
 use example::{ExampleAir, PublicInputs};
+use log::LevelFilter;
+use std::io::Write;
 use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
 use winter_math::{fields::f64::BaseElement as Felt, FieldElement};
 use winter_prover::crypto::hashers::Blake3_192;
@@ -75,18 +78,20 @@ where
 }
 
 fn main() {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
+    let example_log = File::create("example.wlog").unwrap();
+    env_logger::Builder::new()
+        .format_timestamp(None)
+        .format(|buf, record| writeln!(buf, "{}", record.args()))
+        .filter(None, LevelFilter::Info)
+        .target(env_logger::Target::Pipe(Box::new(example_log)))
+        .init();
 
     let inputs = [Felt::ONE; 16];
     let options = WinterProofOptions::new(27, 8, 16, FieldExtension::None, 8, 255);
     let prover = ExampleProver::<Blake3_192<Felt>>::new(options);
     let trace = prover.build_trace(8, &inputs);
     let pub_inputs = prover.get_pub_inputs(&trace);
-    println!("proving");
     let proof = prover.prove(trace).unwrap();
-
-    println!("verifying");
     verify::<ExampleAir, Blake3_192<Felt>, DefaultRandomCoin<Blake3_192<Felt>>>(proof, pub_inputs)
         .unwrap();
-    println!("done");
 }
