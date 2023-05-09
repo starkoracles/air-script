@@ -18,4 +18,3 @@ Cargo.lock
 # Ignore examples codegen generated files
 **/examples/*.rs
 **/examples/*.cairo
-**/*.wlog
