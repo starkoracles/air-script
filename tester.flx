@@ -101,7 +101,7 @@ endmatch;
 regdef l8 = "t_evaluations1: " group(narr);
 var r8 = RE2 l8.render;
 var x8 = Match(r8, vlines.7);
-match x1 with
+match x8 with
 | Some y => 
   println$ "L8: " +  y.1;
 | None => println$ "Parse 8 failed";
