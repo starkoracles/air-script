@@ -23,19 +23,108 @@ regdef vector = "(" numberz ")";
 regdef narr = "[" numberz? "]";
 regdef varr = "[" vector (", " vector)* "]";
 
-regdef l1 = 
+regdef l1 = "public_inputs: " group (narr);
+var r1 = RE2 l1.render;
+var x1 = Match(r1, vlines.0);
+match x1 with
+| Some y => 
+  println$  "L1: " + y.1;
+| None => println$ "Parse 1 failed";
+endmatch;
+
+regdef l2 = 
   "composition_coefficients: ConstraintCompositionCoefficients { transition: "  
    group (varr)
    ", boundary: "
    group(varr)
-   " }" " "*
+   " }"
 ;
-
-var r = RE2 l1.render;
-var x = Match(r, vlines.2);
-match x with
+var r2 = RE2 l2.render;
+var x2 = Match(r2, vlines.1);
+match x2 with
 | Some y => 
-  println$ "TRANSITION:" + y.1;
-  println$ "BOUNDARY:" + y.2;
-| None => println$ "Parse failed";
+  println$  "L2: " + y.1;
+| None => println$ "Parse 2 failed";
 endmatch;
+
+regdef l3 = 
+  "main_trace_frame: EvaluationFrame { current: "  
+   group (narr)
+   ", next: "
+   group(narr)
+   " }"
+;
+var r3 = RE2 l3.render;
+var x3 = Match(r3, vlines.2);
+match x3 with
+| Some y => 
+  println$  "L3: " + y.1;
+| None => println$ "Parse 3 failed";
+endmatch;
+
+regdef l4 = "aux_trace_frame: " group (narr | "None");
+var r4 = RE2 l4.render;
+var x4 = Match(r4, vlines.3);
+match x4 with
+| Some y => 
+  println$  "L4: " + y.1;
+| None => println$ "Parse 4 failed";
+endmatch;
+
+regdef l5 = "aux_trace_rand_elements: AuxTraceRandElements(" group(narr?) ")";
+var r5 = RE2 l5.render;
+var x5 = Match(r5, vlines.4);
+match x5 with
+| Some y => 
+  println$  "L5: " + y.1;
+| None => println$ "Parse 5 failed";
+endmatch;
+
+regdef l6 = "x: " group(number);
+var r6 = RE2 l6.render;
+var x6 = Match(r6, vlines.5);
+match x6 with
+| Some y => 
+  println$  "L6: " + y.1;
+| None => println$ "Parse 6 failed";
+endmatch;
+
+regdef l7 = "periodic_values: " group(narr);
+var r7 = RE2 l7.render;
+var x7 = Match(r7, vlines.6);
+match x7 with
+| Some y => 
+  println$  "L7: " + y.1;
+| None => println$ "Parse 7 failed";
+endmatch;
+
+regdef l8 = "t_evaluations1: " group(narr);
+var r8 = RE2 l8.render;
+var x8 = Match(r8, vlines.7);
+match x1 with
+| Some y => 
+  println$ "L8: " +  y.1;
+| None => println$ "Parse 8 failed";
+endmatch;
+
+regdef l9 = "t_evaluations2: " group(narr);
+var r9 = RE2 l9.render;
+var x9 = Match(r9, vlines.8);
+match x9 with
+| Some y => 
+  println$  "L9: " + y.1;
+| None => println$ "Parse 9 failed";
+endmatch;
+
+regdef l10 = "t_combined: " group(number);
+var r10 = RE2 l10.render;
+var x10 = Match(r10, vlines.10);
+match x10 with
+| Some y => 
+  println$  "L10: " + y.1;
+| None => println$ "Parse 10 failed";
+endmatch;
+
+
+
+
