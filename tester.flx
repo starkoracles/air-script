@@ -118,7 +118,7 @@ endmatch;
 
 regdef l10 = "t_combined: " group(number);
 var r10 = RE2 l10.render;
-var x10 = Match(r10, vlines.10);
+var x10 = Match(r10, vlines.9);
 match x10 with
 | Some y => 
   println$  "L10: " + y.1;
