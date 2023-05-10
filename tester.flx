@@ -4,8 +4,10 @@ open Regdef;
 
 // Start by parsing output from Winterfell run
 
-var filename = "example.wlog";
-var text = load filename;
+var test_filename = "examples/tests/cairo/test_air.cairo";
+
+var log_filename = "example.wlog";
+var text = load log_filename;
 var lines = split (text, "\n");
 var vlines = varray lines;
 
@@ -138,6 +140,7 @@ var main_trace_len = (main_trace_current,",").split.len;
 
 var output = 
 """
+// GENERATED
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
@@ -191,5 +194,5 @@ func test_transition_constraints{range_check_ptr}() {
 }
 """;
 
-println$ output;
+save(test_filename, output);
 
