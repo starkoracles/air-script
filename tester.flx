@@ -58,7 +58,10 @@ var r3 = RE2 l3.render;
 var x3 = Match(r3, vlines.2);
 match x3 with
 | Some y => 
-  println$  "L3: " + y.1;
+  println$  "L3: " + y.1 + y.2;
+var main_trace_current = y.1;
+var main_trace_next = y.2;
+
 | None => println$ "Parse 3 failed";
 endmatch;
 
@@ -95,6 +98,7 @@ var x7 = Match(r7, vlines.6);
 match x7 with
 | Some y => 
   println$  "L7: " + y.1;
+  var periodic_values = y.1;
 | None => println$ "Parse 7 failed";
 endmatch;
 
@@ -103,6 +107,7 @@ var r8 = RE2 l8.render;
 var x8 = Match(r8, vlines.7);
 match x8 with
 | Some y => 
+var expected_evals = y.1;
   println$ "L8: " +  y.1;
 | None => println$ "Parse 8 failed";
 endmatch;
@@ -125,6 +130,66 @@ match x10 with
 | None => println$ "Parse 10 failed";
 endmatch;
 
+fun arr2list (x:string) {
+  return split(x.[1 to -1],",");
+}
 
+var main_trace_len = (main_trace_current,",").split.len;
 
+var output = 
+"""
+%lang starknet
+
+from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+from starkware.cairo.common.hash import HashBuiltin
+from starkware.cairo.common.alloc import alloc
+from examples.tests.cairo.example import EvaluationFrame, evaluate_transition_0
+
+@external
+func test_transition_constraints{range_check_ptr}() {
+    alloc_locals;
+    let (periodic: felt*) = alloc();
+"""
++
+  {
+    var ps = periodic_values.arr2list.varray;
+    var s = "";
+    for i in 0uz..<ps.len do
+      &s <- s + "    assert periodic["+i.str+"] = "+ps.i.str+";\n";
+    done
+    return s;
+  }()
+    
++
+"""
+    let (current_frame: felt*) = alloc();
+    let (next_frame: felt*) = alloc();
+    %{
+        current_frame_ptr = ids.current_frame
+        for val in """ + main_trace_current + """:
+               memory[current_frame_ptr] = val
+               current_frame_ptr = current_frame_ptr + 1
+
+        next_frame_ptr = ids.next_frame
+        for next_val in """+main_trace_next+""":
+            memory[next_frame_ptr] = next_val
+            next_frame_ptr = next_frame_ptr + 1
+    %}
+
+    let (t_evaluations: felt*) = alloc();
+    local t_evaluations_ptr: felt* = t_evaluations;
+    let main_frame = EvaluationFrame("""+main_trace_len.str+""", current_frame, """+main_trace_len.str+""", next_frame);
+
+    evaluate_transition_0(main_frame, t_evaluations, periodic);
+    %{
+        expected_t_evals = """+expected_evals+"""
+        for i in range("""+main_trace_len.str+"""):
+            print(i, memory[ids.t_evaluations_ptr + i])
+            assert memory[ids.t_evaluations_ptr + i] == expected_t_evals[i]
+    %}
+    return ();
+}
+""";
+
+println$ output;
 
