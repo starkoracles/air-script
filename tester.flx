@@ -1,0 +1,41 @@
+// Temporarily, test script in top level of repo
+
+open Regdef;
+
+// Start by parsing output from Winterfell run
+
+var filename = "example.wlog";
+var text = load filename;
+var lines = split (text, "\n");
+var vlines = varray lines;
+
+var counter = 1;
+for line in vlines do
+  println$ counter.str + ":  " + line;
+  ++counter;
+done
+// Line 1: constraint coeffs
+
+regdef digit = charset "0123456789";
+regdef number = digit+;
+regdef numberz = number (", " number)*;
+regdef vector = "(" numberz ")";
+regdef narr = "[" numberz? "]";
+regdef varr = "[" vector (", " vector)* "]";
+
+regdef l1 = 
+  "composition_coefficients: ConstraintCompositionCoefficients { transition: "  
+   group (varr)
+   ", boundary: "
+   group(varr)
+   " }" " "*
+;
+
+var r = RE2 l1.render;
+var x = Match(r, vlines.2);
+match x with
+| Some y => 
+  println$ "TRANSITION:" + y.1;
+  println$ "BOUNDARY:" + y.2;
+| None => println$ "Parse failed";
+endmatch;
