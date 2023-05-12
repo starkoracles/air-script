@@ -9,7 +9,7 @@ println$ "AIRSCIPT result = " + result.str;
 
 result = System::system "cp examples/example.rs examples/tests/winterfell/src/example.rs";
 println$ "CP result = " + result.str;
-result = System::system "cargo run --bin winterfell --release";
+result = System::system "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release";
 println$ "WINTERFELL result = " + result.str;
 
 var test_filename = "examples/tests/cairo/test_air.cairo";
@@ -18,12 +18,11 @@ var text = load log_filename;
 var lines = split (text, "\n");
 var vlines = varray lines;
 
-var counter = 1;
+var counter = 0;
 for line in vlines do
   println$ counter.str + ":  " + line;
   ++counter;
 done
-// Line 1: constraint coeffs
 
 regdef digit = charset "0123456789";
 regdef number = digit+;
@@ -32,30 +31,56 @@ regdef vector = "(" numberz ")";
 regdef narr = "[" numberz? "]";
 regdef varr = "[" vector (", " vector)* "]";
 
+println$ "\nPARSE\n";
+
+//0
+var lno = 0;
 regdef l1 = "public_inputs: " group (narr);
 var r1 = RE2 l1.render;
-var x1 = Match(r1, vlines.0);
+var x1 = Match(r1, vlines.lno);
 match x1 with
 | Some y => 
-  println$  "L1: " + y.1;
-| None => println$ "Parse 1 failed";
+  println$  "public_inputs: " + y.1;
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
-regdef l2 = 
-  "composition_coefficients: ConstraintCompositionCoefficients { transition: "  
-   group (varr)
-   ", boundary: "
-   group(varr)
-   " }"
-;
+//1
+++lno;
+regdef l1a = "main_transition_constraints - target degree: " group (number);
+var r1a = RE2 l1a.render;
+var x1a = Match(r1a, vlines.lno);
+match x1a with
+| Some y => 
+  println$  "main_transition_constraints target degree: " + y.1;
+var main_transition_constraints_target_degree = y.1;
+| None => println$ "Parse "+lno.str+" failed";
+endmatch;
+
+
+//2
+++lno;
+regdef l2 = "main_constraint_coeffs: "  group (varr);
 var r2 = RE2 l2.render;
-var x2 = Match(r2, vlines.1);
+var x2 = Match(r2, vlines.lno);
 match x2 with
 | Some y => 
-  println$  "L2: " + y.1;
-| None => println$ "Parse 2 failed";
+  println$  "main_constraint_coeffs: " + y.1;
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+//3
+++lno;
+regdef l2a = "aux_constraints_number: "  group (number);
+var r2a = RE2 l2a.render;
+var x2a = Match(r2a, vlines.lno);
+match x2a with
+| Some y => 
+  println$  "aux_constraints_number: " + y.1;
+| None => println$ "Parse "+lno.str+" failed";
+endmatch;
+
+//4
+++lno;
 regdef l3 = 
   "main_trace_frame: EvaluationFrame { current: "  
    group (narr)
@@ -64,79 +89,119 @@ regdef l3 =
    " }"
 ;
 var r3 = RE2 l3.render;
-var x3 = Match(r3, vlines.2);
+var x3 = Match(r3, vlines.lno);
 match x3 with
 | Some y => 
-  println$  "L3: " + y.1 + y.2;
+  println$  "main_trace_frame: current: " + y.1;
+  println$  "main_trace_frame: next: " + y.2;
 var main_trace_current = y.1;
 var main_trace_next = y.2;
 
-| None => println$ "Parse 3 failed";
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+//5
+++lno;
 regdef l4 = "aux_trace_frame: " group (narr | "None");
 var r4 = RE2 l4.render;
-var x4 = Match(r4, vlines.3);
+var x4 = Match(r4, vlines.lno);
 match x4 with
 | Some y => 
-  println$  "L4: " + y.1;
-| None => println$ "Parse 4 failed";
+  println$  "aux_trace_frame: " + y.1;
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+//6
+++lno;
 regdef l5 = "aux_trace_rand_elements: AuxTraceRandElements(" group(narr?) ")";
 var r5 = RE2 l5.render;
-var x5 = Match(r5, vlines.4);
+var x5 = Match(r5, vlines.lno);
 match x5 with
 | Some y => 
   println$  "L5: " + y.1;
-| None => println$ "Parse 5 failed";
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+//7
+++lno;
 regdef l6 = "x: " group(number);
 var r6 = RE2 l6.render;
-var x6 = Match(r6, vlines.5);
+var x6 = Match(r6, vlines.lno);
 match x6 with
 | Some y => 
-  println$  "L6: " + y.1;
-| None => println$ "Parse 6 failed";
+  println$  "x: " + y.1;
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+//8
+++lno;
 regdef l7 = "periodic_values: " group(narr);
 var r7 = RE2 l7.render;
-var x7 = Match(r7, vlines.6);
+var x7 = Match(r7, vlines.lno);
 match x7 with
 | Some y => 
-  println$  "L7: " + y.1;
-  var periodic_values = y.1;
-| None => println$ "Parse 7 failed";
+  println$  "periodic_values: " + y.1;
+var periodic_values = y.1;
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+//9
+++lno;
+regdef l8a = "trace_length : " group(number);
+var r8a = RE2 l8a.render;
+var x8a = Match(r8a, vlines.lno);
+match x8a with
+| Some y => 
+var trace_length= y.1;
+  println$ "trace_length: " +  y.1;
+| None => println$ "Parse "+lno.str+" failed";
+endmatch;
+
+//10
+++lno;
+regdef l8b = "trace_domain_generator: " group(number);
+var r8b = RE2 l8b.render;
+var x8b = Match(r8b, vlines.lno);
+match x8b with
+| Some y => 
+var trace_domain_generator = y.1;
+  println$ "trace_domain_generator: " +  y.1;
+| None => println$ "Parse "+lno.str+" failed";
+endmatch;
+
+
+//11
+++lno;
 regdef l8 = "t_evaluations1: " group(narr);
 var r8 = RE2 l8.render;
-var x8 = Match(r8, vlines.7);
+var x8 = Match(r8, vlines.lno);
 match x8 with
 | Some y => 
-var expected_evals = y.1;
-  println$ "L8: " +  y.1;
-| None => println$ "Parse 8 failed";
+var t_evaluations1 = y.1;
+  println$ "t_evaluations1: " +  y.1;
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+++lno;
 regdef l9 = "t_evaluations2: " group(narr);
 var r9 = RE2 l9.render;
-var x9 = Match(r9, vlines.8);
+var x9 = Match(r9, vlines.lno);
 match x9 with
 | Some y => 
-  println$  "L9: " + y.1;
-| None => println$ "Parse 9 failed";
+var t_evaluations2 = y.1;
+  println$  "t_evaluations2: " + y.1;
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+++lno;
 regdef l10 = "t_combined: " group(number);
 var r10 = RE2 l10.render;
-var x10 = Match(r10, vlines.9);
+var x10 = Match(r10, vlines.lno);
 match x10 with
 | Some y => 
-  println$  "L10: " + y.1;
-| None => println$ "Parse 10 failed";
+  println$  "t_combined: " + y.1;
+var t_combined = y.1;
+| None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
 fun arr2list (x:string) {
@@ -192,7 +257,7 @@ func test_transition_constraints{range_check_ptr}() {
 
     evaluate_transition_0(main_frame, t_evaluations, periodic);
     %{
-        expected_t_evals = """+expected_evals+"""
+        expected_t_evals = """t_evaluations1+"""
         for i in range("""+main_trace_len.str+"""):
             print(i, memory[ids.t_evaluations_ptr + i])
             assert memory[ids.t_evaluations_ptr + i] == expected_t_evals[i]
