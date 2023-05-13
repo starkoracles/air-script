@@ -1,4 +1,8 @@
 // Temporarily, test script in top level of repo
+include "web/low_res_time";
+open LowResTime;
+var tod = #time_t.gmtime.asctime;
+
 
 open Regdef;
 
@@ -6,11 +10,13 @@ open Regdef;
 
 var result = System::system "cargo run --bin airc -- transpile -i examples/example.air";
 println$ "AIRSCIPT result = " + result.str;
+if result != 0 perform System::exit result;
 
 result = System::system "cp examples/example.rs examples/tests/winterfell/src/example.rs";
 println$ "CP result = " + result.str;
 result = System::system "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release";
 println$ "WINTERFELL result = " + result.str;
+if result != 0 perform System::exit result;
 
 var test_filename = "examples/tests/cairo/test_air.cairo";
 var log_filename = "example.wlog";
@@ -40,8 +46,10 @@ var r1 = RE2 l1.render;
 var x1 = Match(r1, vlines.lno);
 match x1 with
 | Some y => 
+var public_inputs = y.1;
   println$  "public_inputs: " + y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //1
@@ -54,6 +62,7 @@ match x1a with
   println$  "main_transition_constraints target degree: " + y.1;
 var main_transition_constraints_target_degree = y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 
@@ -66,6 +75,7 @@ match x2 with
 | Some y => 
   println$  "main_constraint_coeffs: " + y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //3
@@ -77,6 +87,7 @@ match x2a with
 | Some y => 
   println$  "aux_constraints_number: " + y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //4
@@ -96,8 +107,9 @@ match x3 with
   println$  "main_trace_frame: next: " + y.2;
 var main_trace_current = y.1;
 var main_trace_next = y.2;
-
+var main_trace_width = (main_trace_current,",").split.len;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //5
@@ -109,6 +121,7 @@ match x4 with
 | Some y => 
   println$  "aux_trace_frame: " + y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //6
@@ -118,8 +131,9 @@ var r5 = RE2 l5.render;
 var x5 = Match(r5, vlines.lno);
 match x5 with
 | Some y => 
-  println$  "L5: " + y.1;
+  println$  "aux_trace_rand_elements: " + y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //7
@@ -131,6 +145,7 @@ match x6 with
 | Some y => 
   println$  "x: " + y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //8
@@ -143,18 +158,20 @@ match x7 with
   println$  "periodic_values: " + y.1;
 var periodic_values = y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //9
 ++lno;
-regdef l8a = "trace_length : " group(number);
+regdef l8a = "trace_length: " group(number);
 var r8a = RE2 l8a.render;
 var x8a = Match(r8a, vlines.lno);
 match x8a with
 | Some y => 
-var trace_length= y.1;
+var trace_length= y.1.int;
   println$ "trace_length: " +  y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 //10
@@ -167,6 +184,7 @@ match x8b with
 var trace_domain_generator = y.1;
   println$ "trace_domain_generator: " +  y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 
@@ -180,6 +198,7 @@ match x8 with
 var t_evaluations1 = y.1;
   println$ "t_evaluations1: " +  y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 ++lno;
@@ -191,6 +210,7 @@ match x9 with
 var t_evaluations2 = y.1;
   println$  "t_evaluations2: " + y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 ++lno;
@@ -202,6 +222,7 @@ match x10 with
   println$  "t_combined: " + y.1;
 var t_combined = y.1;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
 
 ++lno;
@@ -214,7 +235,11 @@ match x14 with
 var main_boundary_constraint_groups_number = y.1.int;
 assert main_boundary_constraint_groups_number == 2;
 | None => println$ "Parse "+lno.str+" failed";
+  System::exit 42;
 endmatch;
+
+var b_trace = varray[string](main_trace_width * 2uz,"0");
+var b_expected_evals = varray[string](main_trace_width * 2uz,"0");
 
 for constraint_group in 0..main_boundary_constraint_groups_number - 1 do
   ++lno;
@@ -227,6 +252,7 @@ for constraint_group in 0..main_boundary_constraint_groups_number - 1 do
     var ncon = y.1.int;
     var den = y.2;
   | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
   endmatch;
   
   for bcon in 0..ncon - 1 do
@@ -241,28 +267,40 @@ for constraint_group in 0..main_boundary_constraint_groups_number - 1 do
       var trace_value = y.2;
       var x = y.3;
       var evaluation = y.4;
+set (b_expected_evals, b_column.size + main_trace_width * constraint_group.size, evaluation);
+set (b_trace, b_column.size + main_trace_width * constraint_group.size, trace_value);
+
       println$ "group " + constraint_group.str + ", column " + b_column.str + ", x: " + x.str + ", expeced eval = " + evaluation;
     | None => println$ "Parse of boundary data, group " + constraint_group.str + ", column " + bcon.str + " FAILED";  
+      System::exit 42;
     endmatch;
   done
 done
+
+println$ "WLOG PARSE COMPLETE OK";
+
+println$ "Boundary trace row " + b_trace.str;
+println$ "Boundary expected evals " + b_expected_evals.str;
+var py_bevals = "[";
+for s in b_expected_evals perform py_bevals += s +", ";
+py_bevals += "]";
+println$ "Boundary expected evals (as python) " + py_bevals;
+
 
 
 fun arr2list (x:string) {
   return split(x.[1 to -1],",");
 }
 
-var main_trace_len = (main_trace_current,",").split.len;
-
 var output = 
 """
-// GENERATED
+// GENERATED """ + tod + """
 %lang starknet
 
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.hash import HashBuiltin
 from starkware.cairo.common.alloc import alloc
-from examples.tests.cairo.example import EvaluationFrame, evaluate_transition_0
+from examples.tests.cairo.example import EvaluationFrame, evaluate_transition_0, evaluate_boundary_0
 
 @external
 func test_transition_constraints{range_check_ptr}() {
@@ -297,23 +335,73 @@ func test_transition_constraints{range_check_ptr}() {
 
     let (t_evaluations: felt*) = alloc();
     local t_evaluations_ptr: felt* = t_evaluations;
-    let main_frame = EvaluationFrame("""+main_trace_len.str+""", current_frame, """+main_trace_len.str+""", next_frame);
+    let main_frame = EvaluationFrame("""+main_trace_width.str+""", current_frame, """+main_trace_width.str+""", next_frame);
 
     evaluate_transition_0(main_frame, t_evaluations, periodic);
     %{
         expected_t_evals = """t_evaluations1+"""
-        for i in range("""+main_trace_len.str+"""):
+        print("Transition Evaluations")
+        for i in range("""+main_trace_width.str+"""):
             print(i, memory[ids.t_evaluations_ptr + i])
             assert memory[ids.t_evaluations_ptr + i] == expected_t_evals[i]
     %}
+
+    let (b_current_frame: felt*) = alloc();
+    let (B_next_frame: felt*) = alloc();
+    let (public: felt*) = alloc();
+"""
++
+  { 
+    var p = (public_inputs.[1 to -1], ",").split.varray;
+    var lno = 0;
+    var s = "";
+    for inp in p do 
+      s = s + "    assert public["+lno.str+"] = " + inp + ";\n";
+      ++lno;
+    done
+    return s;
+  } ()
++
+"""
+  // Trace
+"""
++
+  { 
+    var lno = 0;
+    var s = "";
+    for inp in b_trace do 
+      s = s + "    assert b_current_frame["+lno.str+"] = " + inp + ";\n";
+      ++lno;
+    done
+    return s;
+  } ()
+
++
+"""
+    let b_frame = EvaluationFrame("""+(main_trace_width * 2uz).str +""", b_current_frame, """+(main_trace_width * 2uz).str+""", next_frame);
+
+    let (b_evaluations: felt*) = alloc();
+    local b_evaluations_ptr: felt* = b_evaluations;
+    evaluate_boundary_0(b_frame, b_evaluations, public);
+
+    %{
+        expected_b_evals = """+py_bevals+"""
+        print("Boundary Evaluations")
+        for i in range("""+(main_trace_width * 2uz).str+"""):
+            print(i, memory[ids.b_evaluations_ptr + i])
+            assert memory[ids.b_evaluations_ptr + i] == expected_b_evals[i]
+    %}
+
+
     return ();
 }
 """;
 
 save(test_filename, output);
 
-result = System::system "cp examples/example.cairo examples/test.cairo ";
+result = System::system "cp examples/example.cairo examples/tests/cairo/example.cairo";
 println$ "CP result = " + result.str;
+
 result = System::system "protostar --no-color -p unit test";
 println$ "PROTOSTAR result = " + result.str;
 
