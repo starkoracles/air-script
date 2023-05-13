@@ -80,7 +80,7 @@ impl CodeGenerator {
 
 
        let (sb,boundary_degrees, boundary_maxdeg, boundary_domain) = 
-         boundary::evaluate_boundaries(&self.graph, segment,&self.boundary_constraints[segment])
+         boundary::evaluate_boundaries(*w as usize, &self.graph, segment,&self.boundary_constraints[segment])
        ; 
        s = s + &sb;
 

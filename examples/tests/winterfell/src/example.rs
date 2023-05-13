@@ -75,9 +75,9 @@ impl Air for ExampleAir {
 
     fn get_assertions(&self) -> Vec<Assertion<Felt>> {
         let mut result = Vec::new();
+        result.push(Assertion::single(3, 0, self.stack_inputs[2]));
         result.push(Assertion::single(1, 0, self.stack_inputs[0]));
         result.push(Assertion::single(2, 0, self.stack_inputs[1]));
-        result.push(Assertion::single(3, 0, self.stack_inputs[2]));
         result.push(Assertion::single(1, self.last_step(), self.stack_outputs[0]));
         result.push(Assertion::single(2, self.last_step(), self.stack_outputs[1]));
         result.push(Assertion::single(3, self.last_step(), self.stack_outputs[2]));

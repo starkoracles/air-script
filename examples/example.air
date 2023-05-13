@@ -18,9 +18,9 @@ periodic_columns:
 
 boundary_constraints:
     # define boundary constraints against the main trace at the first row of the trace.
+    enf c.first = stack_inputs[2]
     enf a.first = stack_inputs[0]
     enf b.first = stack_inputs[1]
-    enf c.first = stack_inputs[2]
 
     # define boundary constraints against the main trace at the last row of the trace.
     enf a.last = stack_outputs[0]

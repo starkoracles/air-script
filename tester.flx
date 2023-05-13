@@ -204,6 +204,50 @@ var t_combined = y.1;
 | None => println$ "Parse "+lno.str+" failed";
 endmatch;
 
+++lno;
+regdef l14 = "main_boundary_constraint_groups_number: " group(number);
+var r14 = RE2 l14.render;
+var x14 = Match(r14, vlines.lno);
+match x14 with
+| Some y => 
+  println$  "main_boundary_constraint_groups_number: " + y.1;
+var main_boundary_constraint_groups_number = y.1.int;
+assert main_boundary_constraint_groups_number == 2;
+| None => println$ "Parse "+lno.str+" failed";
+endmatch;
+
+for constraint_group in 0..main_boundary_constraint_groups_number - 1 do
+  ++lno;
+  regdef l15 = "constraint_group, number_of_constraints: " group(number) ", denominator: " group(number);
+  var r15 = RE2 l15.render;
+  var x15 = Match(r15, vlines.lno);
+  match x15 with
+  | Some y => 
+    println$  "group " + constraint_group.str + ", nconstraints "+ y.1+", denominator " + y.2;
+    var ncon = y.1.int;
+    var den = y.2;
+  | None => println$ "Parse "+lno.str+" failed";
+  endmatch;
+  
+  for bcon in 0..ncon - 1 do
+    ++lno;
+    regdef l16 = "b_column: " group(number) ", trace_value: " group(number) + ", x: "  group(number) + ", evaluation: " group(number);
+    var r16 = RE2 l16.render;
+    var x16 = Match(r16, vlines.lno);
+    match x16 with
+    | Some y => 
+      var b_column = y.1.int;
+      //assert bcon == b_column - 1;
+      var trace_value = y.2;
+      var x = y.3;
+      var evaluation = y.4;
+      println$ "group " + constraint_group.str + ", column " + b_column.str + ", x: " + x.str + ", expeced eval = " + evaluation;
+    | None => println$ "Parse of boundary data, group " + constraint_group.str + ", column " + bcon.str + " FAILED";  
+    endmatch;
+  done
+done
+
+
 fun arr2list (x:string) {
   return split(x.[1 to -1],",");
 }
