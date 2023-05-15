@@ -3,6 +3,7 @@ use ir::constraints::ConstraintRoot;
 use ir::constraints::ConstraintDomain;
 use ir::Value;
 use ir::constraints::Operation;
+use ir::PublicInput;
 
 
 use super::showvalue;
@@ -12,6 +13,7 @@ use showvalue::str;
 pub fn evaluate_boundaries(
   trace_width: usize,
   graph: &AlgebraicGraph, 
+  public_inputs: &Vec<PublicInput>,
   segment: usize, 
   boundary_constraints: &Vec<ConstraintRoot>,
 ) -> (
@@ -27,7 +29,14 @@ pub fn evaluate_boundaries(
     "func evaluate_boundary_" + &segment.to_string() + "{range_check_ptr} (\n" + 
     "  frame: EvaluationFrame,\n" + 
     "  b_evaluations: felt*,\n" + 
-    "  public: felt*,\n" + 
+    &{ 
+      let mut s = "".to_string();
+      for (name,_size) in public_inputs.iter() {
+        s = s + "  " + name + ": felt*,\n";
+      }
+      s
+    }
+    +
     { if segment > 0 { "  rand: felt*,\n" } else { "" }} + 
     ") {\n" + 
     "  alloc_locals;\n" + 

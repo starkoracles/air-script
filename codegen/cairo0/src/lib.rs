@@ -11,6 +11,10 @@ mod showvalue;
 mod transition;
 mod boundary;
 
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+
 
 // GENERATE verifier for proof as Cairo v0.4
 // ================================================================================================
@@ -50,6 +54,32 @@ impl CodeGenerator {
 
   /// Returns a string of Cairo code implementing Cairo0
   pub fn generate(&self) -> String {
+
+//========== HACK HACK =================================
+//
+// We need to get the PublicInput into a file where the test harness can find it
+// It should be based on the air_name but for the moment i'm using example.public
+// in the current directoy
+//
+//======================================================
+    { 
+      let mut x = "".to_string();
+      for (name,xsize) in self.public_inputs.iter() {
+        x = x + &name + " " + &xsize.to_string() + "\n";
+        
+      };
+      let path = Path::new("example.public");
+      let display = path.display();
+      let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create{}: {}", display, why),
+        Ok(file) => file,
+      };
+      match file.write_all(x.as_bytes()) {
+        Err(why) => panic!("couldn't write to {}: {}", display, why),
+        Ok(_) => println!("successfully wrote to {}", display),
+      }
+    };
+
     // header
     let mut s = 
       "// Air name ".to_string() + &self.air_name + " " + &(self.segment_widths.len().to_string()) + " segments\n"
@@ -80,7 +110,7 @@ impl CodeGenerator {
 
 
        let (sb,boundary_degrees, boundary_maxdeg, boundary_domain) = 
-         boundary::evaluate_boundaries(*w as usize, &self.graph, segment,&self.boundary_constraints[segment])
+         boundary::evaluate_boundaries(*w as usize, &self.graph,  &self.public_inputs, segment,&self.boundary_constraints[segment])
        ; 
        s = s + &sb;
 

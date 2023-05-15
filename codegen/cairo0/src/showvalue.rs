@@ -18,7 +18,7 @@ pub fn showvalue(x: &Value) -> String {
       }
     }
     Value::PeriodicColumn(index, _length) => "periodic_row[".to_string() + &index.to_string() + "]",
-    Value::PublicInput(_, index) => "public[".to_string() + &index.to_string() + "]",
+    Value::PublicInput(s, index) => s.to_string()+"[" + &index.to_string() + "]",
     Value::RandomValue(x) => "rand[".to_string() + &x.to_string() + "]",
   }
 }

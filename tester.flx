@@ -8,16 +8,152 @@ open Regdef;
 
 // Start by parsing output from Winterfell run
 
+// RUN AIRSCRIPT 
 var result = System::system "cargo run --bin airc -- transpile -i examples/example.air";
 println$ "AIRSCIPT result = " + result.str;
 if result != 0 perform System::exit result;
 
+// COPY WINTERFELL VERIFIER
 result = System::system "cp examples/example.rs examples/tests/winterfell/src/example.rs";
-println$ "CP result = " + result.str;
+println$ "COPIED example.rs" + result.str;
+if result != 0 perform System::exit result;
+
+// GENERATE WINTEFELL PROVER/VERIFIER MAIN
+var winterfell_main_filename = "examples/tests/winterfell/src/main.rs"; 
+
+var winterfell_main_text = """
+use std::fs::File;
+use std::marker::PhantomData;
+
+use example::{ExampleAir, PublicInputs};
+use log::LevelFilter;
+use std::io::Write;
+use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
+use winter_math::{fields::f64::BaseElement as Felt, FieldElement};
+use winter_prover::crypto::hashers::Blake3_192;
+use winter_prover::crypto::{DefaultRandomCoin, ElementHasher};
+use winter_prover::{Prover, Trace, TraceTable};
+use winter_verifier::verify;
+
+mod example;
+
+pub struct ExampleProver<H: ElementHasher> {
+    options: WinterProofOptions,
+    _hasher: PhantomData<H>,
+}
+
+impl<H: ElementHasher> ExampleProver<H> {
+    pub fn new(options: WinterProofOptions) -> Self {
+        Self {
+            options,
+            _hasher: PhantomData,
+        }
+    }
+
+    /// Builds an execution trace of the air
+    pub fn build_trace(&self, sequence_length: usize, inputs: &[Felt; 16]) -> TraceTable<Felt> {
+        assert!(
+            sequence_length.is_power_of_two(),
+            "sequence length must be a power of 2"
+        );
+
+        let mut s = vec![Felt::ONE];
+        let mut a = vec![inputs[0]];
+        let mut b = vec![inputs[1]];
+        let mut c = vec![inputs[2]];
+
+        for i in 1..sequence_length {
+            let new_a = Felt::from((i + 1) as u64);
+            let new_b = Felt::from((i + 2) as u64);
+            s.push(Felt::ONE); // selector stays the same
+            a.push(new_a);
+            b.push(new_b);
+            c.push(new_a * new_b); // c is a * b
+        }
+
+        TraceTable::init(vec![s, a, b, c])
+    }
+}
+
+impl<H: ElementHasher> Prover for ExampleProver<H>
+where
+    H: ElementHasher<BaseField = Felt>,
+{
+    type BaseField = Felt;
+    type Air = ExampleAir;
+    type Trace = TraceTable<Felt>;
+    type HashFn = H;
+    type RandomCoin = DefaultRandomCoin<Self::HashFn>;
+
+    fn get_pub_inputs(&self, trace: &Self::Trace) -> PublicInputs {
+        // based on air, c = a * b and therefore all 1s
+        let inputs = [Felt::ONE; 16];
+        let mut outputs = [Felt::ONE; 16];
+        let last_step = trace.length() - 2; // why is this 2?
+        outputs[0] = trace.get(1, last_step); // a
+        outputs[1] = trace.get(2, last_step); // b
+        outputs[2] = trace.get(3, last_step); // c
+        PublicInputs::new(inputs, outputs)
+    }
+
+    fn options(&self) -> &WinterProofOptions {
+        &self.options
+    }
+}
+
+fn main() {
+    let inputs = [Felt::ONE; 16];
+    let options = WinterProofOptions::new(27, 8, 16, FieldExtension::None, 8, 255);
+    let prover = ExampleProver::<Blake3_192<Felt>>::new(options);
+    let trace = prover.build_trace(8, &inputs);
+    let pub_inputs = prover.get_pub_inputs(&trace);
+    let proof = prover.prove(trace).unwrap();
+    let example_log = File::create("example.wlog").unwrap();
+
+    // only print verifier
+    env_logger::Builder::new()
+        .format_timestamp(None)
+        .format(|buf, record| writeln!(buf, "{}", record.args()))
+        .filter(None, LevelFilter::Info)
+        .target(env_logger::Target::Pipe(Box::new(example_log)))
+        .init();
+    verify::<ExampleAir, Blake3_192<Felt>, DefaultRandomCoin<Blake3_192<Felt>>>(proof, pub_inputs)
+        .unwrap();
+}
+""";
+save(winterfell_main_filename, winterfell_main_text);
+println$ "SAVED " + winterfell_main_filename;
+
+// RUN WINTERFELL to get required data and results for comparison
 result = System::system "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release";
 println$ "WINTERFELL result = " + result.str;
 if result != 0 perform System::exit result;
 
+// PARSE PUBLIC INPUT NAMES FILE
+
+var pubs = (load("example.public"),"\n").split.varray;
+var pub_inputs = pubs.len - 1; // due to trailing newline
+println$ "PUBLIC INPUT COUNT = " + pub_inputs.str; 
+var pub_data = varray[string * int] pub_inputs.size;
+begin
+  regdef pubdesc = group (perl("\\w+")) " " group (perl("\\d+"));
+  var pubdesc_r = RE2 pubdesc.render;
+  for i in 0uz .. pub_inputs - 1uz do
+    var xx = Match(pubdesc_r, pubs.i);
+    match xx with
+    | Some v =>
+       var name = v.1;
+       var siz = v.2.int;
+       push_back(pub_data, (name,siz.int));
+       println$ "Public input '" + name + "', length " + siz.str;
+    | None =>
+      println$ "FAILURE PARSING PUBLIC INPUT NAMES '" + pubs.i+"'";
+      System::exit 42;
+    endmatch;
+  done
+end
+
+// PARSE WINTERFELL GENERATED LOG FILE 
 var test_filename = "examples/tests/cairo/test_air.cairo";
 var log_filename = "example.wlog";
 var text = load log_filename;
@@ -292,6 +428,8 @@ fun arr2list (x:string) {
   return split(x.[1 to -1],",");
 }
 
+
+// GENERATE CAIRO VERIFIER
 var output = 
 """
 // GENERATED """ + tod + """
@@ -347,17 +485,20 @@ func test_transition_constraints{range_check_ptr}() {
     %}
 
     let (b_current_frame: felt*) = alloc();
-    let (B_next_frame: felt*) = alloc();
-    let (public: felt*) = alloc();
+    let (b_next_frame: felt*) = alloc();
 """
 +
   { 
+    var s = "\n  // public inputs\n";
     var p = (public_inputs.[1 to -1], ",").split.varray;
-    var lno = 0;
-    var s = "";
-    for inp in p do 
-      s = s + "    assert public["+lno.str+"] = " + inp + ";\n";
-      ++lno;
+    var ixno = 0;
+    for pd in pub_data do
+      var name = pd.0;
+      s = s + "\n    let ("+name+": felt*) = alloc();\n";
+      for lno in 0..<pd.1 do
+        s = s + "    assert "+name+"["+lno.str+"] = " + p.ixno + ";\n";
+        ++ixno;
+      done
     done
     return s;
   } ()
@@ -382,7 +523,18 @@ func test_transition_constraints{range_check_ptr}() {
 
     let (b_evaluations: felt*) = alloc();
     local b_evaluations_ptr: felt* = b_evaluations;
-    evaluate_boundary_0(b_frame, b_evaluations, public);
+    evaluate_boundary_0(b_frame, b_evaluations, """
++ 
+  #{
+    var s = "";
+    for i in 0uz ..< pub_data.len do
+      if i != 0uz perform s = s + ", ";
+      s = s + pub_data.i.0;
+    done
+    return s;
+  }
++
+""");
 
     %{
         expected_b_evals = """+py_bevals+"""
@@ -399,9 +551,12 @@ func test_transition_constraints{range_check_ptr}() {
 
 save(test_filename, output);
 
+// COPY VERIFIER TO WHERE PROTOSTAR CAN FIND IT
 result = System::system "cp examples/example.cairo examples/tests/cairo/example.cairo";
 println$ "CP result = " + result.str;
 
+// RUN PROTOSTAR CAIRO VERIFIER TEST
 result = System::system "protostar --no-color -p unit test";
 println$ "PROTOSTAR result = " + result.str;
+
 

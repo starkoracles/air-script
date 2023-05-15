@@ -1,5 +1,5 @@
 
-// GENERATED Sat May 13 12:42:20 2023
+// GENERATED Mon May 15 10:55:39 2023
 
 %lang starknet
 
@@ -42,40 +42,45 @@ func test_transition_constraints{range_check_ptr}() {
     %}
 
     let (b_current_frame: felt*) = alloc();
-    let (B_next_frame: felt*) = alloc();
-    let (public: felt*) = alloc();
-    assert public[0] = 1;
-    assert public[1] =  1;
-    assert public[2] =  1;
-    assert public[3] =  1;
-    assert public[4] =  1;
-    assert public[5] =  1;
-    assert public[6] =  1;
-    assert public[7] =  1;
-    assert public[8] =  1;
-    assert public[9] =  1;
-    assert public[10] =  1;
-    assert public[11] =  1;
-    assert public[12] =  1;
-    assert public[13] =  1;
-    assert public[14] =  1;
-    assert public[15] =  1;
-    assert public[16] =  7;
-    assert public[17] =  8;
-    assert public[18] =  56;
-    assert public[19] =  1;
-    assert public[20] =  1;
-    assert public[21] =  1;
-    assert public[22] =  1;
-    assert public[23] =  1;
-    assert public[24] =  1;
-    assert public[25] =  1;
-    assert public[26] =  1;
-    assert public[27] =  1;
-    assert public[28] =  1;
-    assert public[29] =  1;
-    assert public[30] =  1;
-    assert public[31] =  1;
+    let (b_next_frame: felt*) = alloc();
+
+  // public inputs
+
+    let (stack_inputs: felt*) = alloc();
+    assert stack_inputs[0] = 1;
+    assert stack_inputs[1] =  1;
+    assert stack_inputs[2] =  1;
+    assert stack_inputs[3] =  1;
+    assert stack_inputs[4] =  1;
+    assert stack_inputs[5] =  1;
+    assert stack_inputs[6] =  1;
+    assert stack_inputs[7] =  1;
+    assert stack_inputs[8] =  1;
+    assert stack_inputs[9] =  1;
+    assert stack_inputs[10] =  1;
+    assert stack_inputs[11] =  1;
+    assert stack_inputs[12] =  1;
+    assert stack_inputs[13] =  1;
+    assert stack_inputs[14] =  1;
+    assert stack_inputs[15] =  1;
+
+    let (stack_outputs: felt*) = alloc();
+    assert stack_outputs[0] =  7;
+    assert stack_outputs[1] =  8;
+    assert stack_outputs[2] =  56;
+    assert stack_outputs[3] =  1;
+    assert stack_outputs[4] =  1;
+    assert stack_outputs[5] =  1;
+    assert stack_outputs[6] =  1;
+    assert stack_outputs[7] =  1;
+    assert stack_outputs[8] =  1;
+    assert stack_outputs[9] =  1;
+    assert stack_outputs[10] =  1;
+    assert stack_outputs[11] =  1;
+    assert stack_outputs[12] =  1;
+    assert stack_outputs[13] =  1;
+    assert stack_outputs[14] =  1;
+    assert stack_outputs[15] =  1;
 
   // Trace
     assert b_current_frame[0] = 0;
@@ -91,7 +96,7 @@ func test_transition_constraints{range_check_ptr}() {
 
     let (b_evaluations: felt*) = alloc();
     local b_evaluations_ptr: felt* = b_evaluations;
-    evaluate_boundary_0(b_frame, b_evaluations, public);
+    evaluate_boundary_0(b_frame, b_evaluations, stack_inputs, stack_outputs);
 
     %{
         expected_b_evals = [0, 18412444050014700580, 8774229257757275068, 3918954966599443369, 0, 18412444050014700574, 8774229257757275061, 3918954966599443314, ]
