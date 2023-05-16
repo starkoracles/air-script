@@ -20,3 +20,8 @@ Cargo.lock
 **/examples/*.cairo
 
 **/*.wlog
+
+example.public
+examples/tests/cairo/test_air.cairo
+examples/tests/winterfell/src/example.rs
+flxg_stats.txt
