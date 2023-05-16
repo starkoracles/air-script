@@ -209,6 +209,7 @@ var r2 = RE2 l2.render;
 var x2 = Match(r2, vlines.lno);
 match x2 with
 | Some y => 
+var main_constraint_coeffs = y.1;
   println$  "main_constraint_coeffs: " + y.1;
 | None => println$ "Parse "+lno.str+" failed";
   System::exit 42;
@@ -348,7 +349,7 @@ var t_evaluations2 = y.1;
 | None => println$ "Parse "+lno.str+" failed";
   System::exit 42;
 endmatch;
-
+++lno;
 ++lno;
 regdef l10 = "t_combined: " group(number);
 var r10 = RE2 l10.render;
@@ -422,6 +423,25 @@ for s in b_expected_evals perform py_bevals += s +", ";
 py_bevals += "]";
 println$ "Boundary expected evals (as python) " + py_bevals;
 
+var coeffs = (main_constraint_coeffs.[1 to -1],",").split;
+println$ "SPLIT COEFFS = " + coeffs.str;
+var ncoeffs = coeffs.len / 2uz;
+var coeffs_a = varray[string] ncoeffs;
+var coeffs_b = varray[string] ncoeffs;
+regdef num = (" " | "(" | " (")? group(number) ")"?;
+var num_r = RE2 num.render;
+var count = 0uz;
+for e in coeffs do
+  match Match (num_r, e) with
+  | Some y => println$ y.1;
+    if count % 2uz == 0uz do push_back(coeffs_a, y.1); else push_back(coeffs_b, y.1); done
+    ++count;
+  | None => println$ "PARSE FAIL COEFFS";
+  endmatch;
+done
+
+println$ "COEEFS_A " + coeffs_a.str;
+println$ "COEEFS_B " + coeffs_b.str;
 
 
 fun arr2list (x:string) {
@@ -438,7 +458,8 @@ var output =
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.hash import HashBuiltin
 from starkware.cairo.common.alloc import alloc
-from examples.tests.cairo.example import EvaluationFrame, evaluate_transition_0, evaluate_boundary_0
+from examples.tests.cairo.example import EvaluationFrame, evaluate_transition_0, evaluate_boundary_0, merge_transitions_0
+from math_goldilocks import add_g, sub_g, mul_g, pow_g, div_g
 
 @external
 func test_transition_constraints{range_check_ptr}() {
@@ -544,6 +565,46 @@ func test_transition_constraints{range_check_ptr}() {
             assert memory[ids.b_evaluations_ptr + i] == expected_b_evals[i]
     %}
 
+"""
++
+  #{
+    var s = "    let (coeffs_transition_a: felt*) = alloc();\n";
+    var counter = 0;
+    for x in coeffs_a do
+      s = s + "    assert coeffs_transition_a["+counter.str+"] = " + x + ";\n";
+      ++counter;
+    done
+    s = s + "    let (coeffs_transition_b: felt*) = alloc();\n";
+    counter = 0;
+    for x in coeffs_b do
+      s = s + "    assert coeffs_transition_b["+counter.str+"] = " + x + ";\n";
+      ++counter;
+    done
+    return s;
+  }
++
+"""
+    // Evaluate divisor
+    let x = """ + x + """;
+    let trace_length = """+ trace_length.str + """;
+    let g = """ + trace_domain_generator + """;
+    let numerator = pow_g(x, trace_length);
+    let numerator = numerator - 1;
+    let denominator = pow_g(g, trace_length - 1);
+    let denominator = sub_g(x, denominator);
+    let z = div_g(numerator, denominator);
+    %{
+       print("z ",ids.z)
+    %}
+
+    let t_combined = merge_transitions_0(""" + 
+      trace_length.str + """, """ + 
+      main_transition_constraints_target_degree + """, coeffs_transition_a, coeffs_transition_b, t_evaluations, x, z);
+
+    %{
+        print(ids.t_combined)
+        assert ids.t_combined == """ + t_combined.str + """ 
+    %}
 
     return ();
 }
