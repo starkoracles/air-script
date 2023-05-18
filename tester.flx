@@ -583,6 +583,8 @@ func test_transition_constraints{range_check_ptr}() {
     return s;
   }
 +
+#{ println$ "IS X CLOBBERED " + x; return ""; }
++
 """
     // Evaluate divisor
     let x = """ + x + """;
@@ -590,8 +592,11 @@ func test_transition_constraints{range_check_ptr}() {
     let g = """ + trace_domain_generator + """;
     let numerator = pow_g(x, trace_length);
     let numerator = numerator - 1;
-    let denominator = pow_g(g, trace_length - 1);
-    let denominator = sub_g(x, denominator);
+    let denominator1 = pow_g(g, trace_length - 1);
+    let denominator1 = sub_g(x, denominator1);
+    let denominator2 = pow_g(g, trace_length - 2);
+    let denominator2 = sub_g(x, denominator2);
+    let denominator = mul_g(denominator1, denominator2);
     let z = div_g(numerator, denominator);
     %{
        print("z ",ids.z)
