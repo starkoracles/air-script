@@ -192,7 +192,6 @@ func merge_transitions_0{range_check_ptr}(
 }
 func merge_boundary_0{range_check_ptr}(
   trace_length: felt,
-  target_degree: felt,
   blowup_factor: felt,
   coeffs_boundary_a: felt*,
   coeffs_boundary_b: felt*, 

@@ -416,15 +416,15 @@ done
 
 println$ "WLOG PARSE COMPLETE OK";
 
-println$ "Boundary trace row " + b_trace.str;
-println$ "Boundary expected evals " + b_expected_evals.str;
+//println$ "Boundary trace row " + b_trace.str;
+//println$ "Boundary expected evals " + b_expected_evals.str;
 var py_bevals = "[";
 for s in b_expected_evals perform py_bevals += s +", ";
 py_bevals += "]";
-println$ "Boundary expected evals (as python) " + py_bevals;
+//println$ "Boundary expected evals (as python) " + py_bevals;
 
 var coeffs = (main_constraint_coeffs.[1 to -1],",").split;
-println$ "SPLIT COEFFS = " + coeffs.str;
+//println$ "SPLIT COEFFS = " + coeffs.str;
 var ncoeffs = coeffs.len / 2uz;
 var coeffs_a = varray[string] ncoeffs;
 var coeffs_b = varray[string] ncoeffs;
@@ -440,14 +440,17 @@ for e in coeffs do
   endmatch;
 done
 
-println$ "COEEFS_A " + coeffs_a.str;
-println$ "COEEFS_B " + coeffs_b.str;
+//println$ "COEEFS_A " + coeffs_a.str;
+//println$ "COEEFS_B " + coeffs_b.str;
 
 
 fun arr2list (x:string) {
   return split(x.[1 to -1],",");
 }
 
+
+// HACK!!!!
+var blowup_factor = 2;
 
 // GENERATE CAIRO VERIFIER
 var output = 
@@ -458,7 +461,7 @@ var output =
 from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
 from starkware.cairo.common.hash import HashBuiltin
 from starkware.cairo.common.alloc import alloc
-from examples.tests.cairo.example import EvaluationFrame, evaluate_transition_0, evaluate_boundary_0, merge_transitions_0
+from examples.tests.cairo.example import EvaluationFrame, evaluate_transition_0, evaluate_boundary_0, merge_transitions_0, merge_boundary_0
 from math_goldilocks import add_g, sub_g, mul_g, pow_g, div_g
 
 @external
@@ -583,8 +586,6 @@ func test_transition_constraints{range_check_ptr}() {
     return s;
   }
 +
-#{ println$ "IS X CLOBBERED " + x; return ""; }
-+
 """
     // Evaluate divisor
     let x = """ + x + """;
@@ -610,6 +611,13 @@ func test_transition_constraints{range_check_ptr}() {
         print(ids.t_combined)
         assert ids.t_combined == """ + t_combined.str + """ 
     %}
+
+    let npub_steps = 8;
+
+    let b_combined = merge_boundary_0(""" +
+     trace_length.str + """, """ +
+     blowup_factor.str + """,  coeffs_boundary_a, coeffs_boundary_b, b_evaluations, """ + 
+     trace_domain_generator + """, npub_steps , z); 
 
     return ();
 }

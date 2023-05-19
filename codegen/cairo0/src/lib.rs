@@ -160,7 +160,6 @@ impl CodeGenerator {
 // USES TRACE LENGTH INSTEAD OF PUBLIC INPUT STEPS
        s = s + "func merge_boundary_" + &segment.to_string() + "{range_check_ptr}(\n";
        s = s + "  trace_length: felt,\n";
-       s = s + "  target_degree: felt,\n";
        s = s + "  blowup_factor: felt,\n";
        s = s + "  coeffs_boundary_a: felt*,\n";
        s = s + "  coeffs_boundary_b: felt*, \n";
