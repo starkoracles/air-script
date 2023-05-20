@@ -5,6 +5,5 @@ members = [
   "ir",
   "codegen/winterfell",
   "codegen/cairo0",
-  "examples/tests/winterfell",
-  "cairotester"
+  "examples/tests/winterfell"
 ]
