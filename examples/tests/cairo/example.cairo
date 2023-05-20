@@ -207,11 +207,17 @@ func merge_boundary_0{range_check_ptr}(
   let target_degree =  composition_degree + divisor_degree;
   let first_z = z - 1;
 
+ %{
+     print('divisor_first = ', ids.first_z)
+ %}
   let g = trace_domain_generator;
 
   let gn = pow_g(g,npub_steps - 1);
 
   let last_z = z - gn;
+ %{
+     print('divisor_last = ', ids.last_z)
+ %}
 
   local first_sum_0 = 0;
   local last_sum_0 = 0;

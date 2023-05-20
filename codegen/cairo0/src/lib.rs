@@ -175,9 +175,19 @@ impl CodeGenerator {
        s = s + "  let divisor_degree = 1;\n";
        s = s + "  let target_degree =  composition_degree + divisor_degree;\n";
        s = s + "  let first_z = z - 1;\n\n";
+
+       s = s + " %{\n";
+       s = s + "     print('divisor_first = ', ids.first_z)\n";
+       s = s + " %}\n";
+
        s = s + "  let g = trace_domain_generator;\n\n";
        s = s + "  let gn = pow_g(g,npub_steps - 1);\n\n";
        s = s + "  let last_z = z - gn;\n";
+
+       s = s + " %{\n";
+       s = s + "     print('divisor_last = ', ids.last_z)\n";
+       s = s + " %}\n";
+
        s = s + "\n";
        s = s + "  local first_sum_0 = 0;\n";
        s = s + "  local last_sum_0 = 0;\n";
