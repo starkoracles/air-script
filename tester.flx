@@ -687,7 +687,10 @@ func test_transition_constraints{range_check_ptr}() {
      trace_length.str + """, """ +
      blowup_factor.str + """,  coeffs_boundary_a, coeffs_boundary_b, b_evaluations, """ + 
      trace_domain_generator + """, npub_steps , z); 
-
+%{
+print("b_combined = ", ids.b_combined)
+print("Expected 4219772168637362433")
+%}
     return ();
 }
 """;
