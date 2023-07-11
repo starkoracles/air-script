@@ -166,6 +166,7 @@ impl CodeGenerator {
        s = s + "  b_evaluations: felt*, \n";
        s = s + "  trace_domain_generator: felt, \n";
        s = s + "  npub_steps: felt, \n";
+       s = s + "  x: felt, \n";
        s = s + "  z: felt, \n";
        s = s + ") -> felt {\n";
        s = s + "  alloc_locals;\n";
@@ -206,7 +207,7 @@ s = s + "let last_z =  3883696794228705047;\n";
            s = s + "\n  // Merge degree "+ &deg.to_string() +"\n";
            s = s + "  let evaluation_degree = "+&deg.to_string() +" * (trace_length - 1);\n";
            s = s + "  let degree_adjustment = target_degree - evaluation_degree;\n";
-           s = s + "  let xp = pow_g(z, degree_adjustment);\n";
+           s = s + "  let xp = pow_g(x, degree_adjustment);\n";
            for (tr, trdeg) in boundary_degrees.iter().enumerate() {
              if deg == *trdeg {
                let trno = &tr.to_string();

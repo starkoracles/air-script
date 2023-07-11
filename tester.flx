@@ -686,7 +686,7 @@ func test_transition_constraints{range_check_ptr}() {
     let b_combined = merge_boundary_0(""" +
      trace_length.str + """, """ +
      blowup_factor.str + """,  coeffs_boundary_a, coeffs_boundary_b, b_evaluations, """ + 
-     trace_domain_generator + """, npub_steps , z); 
+     trace_domain_generator + """, npub_steps , x, z); 
 %{
 print("b_combined = ", ids.b_combined)
 print("Expected 4219772168637362433")

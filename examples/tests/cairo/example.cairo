@@ -198,6 +198,7 @@ func merge_boundary_0{range_check_ptr}(
   b_evaluations: felt*, 
   trace_domain_generator: felt, 
   npub_steps: felt, 
+  x: felt, 
   z: felt, 
 ) -> felt {
   alloc_locals;
@@ -227,7 +228,7 @@ let last_z =  3883696794228705047;
   // Merge degree 1
   let evaluation_degree = 1 * (trace_length - 1);
   let degree_adjustment = target_degree - evaluation_degree;
-  let xp = pow_g(z, degree_adjustment);
+  let xp = pow_g(x, degree_adjustment);
 
   // Include boundary 0
   let v1 = mul_g(coeffs_boundary_b[0],  xp);
