@@ -83,6 +83,52 @@ func evaluate_boundary_0{range_check_ptr} (
   let cur = frame.current;
 // BOUNDARY CONSTRAINTS
 
+// First Row
+
+  // (cur[1] - stack_inputs[1])
+  let v1 = cur[1];
+  let v2 = stack_inputs[1];
+  let v0 = sub_g(v1, v2);
+  assert b_evaluations[1] = v0;
+  // deg = 1, Domain: the first row
+
+  // (cur[2] - stack_inputs[0])
+  let v4 = cur[2];
+  let v5 = stack_inputs[0];
+  let v3 = sub_g(v4, v5);
+  assert b_evaluations[2] = v3;
+  // deg = 1, Domain: the first row
+
+  // (cur[3] - stack_inputs[2])
+  let v7 = cur[3];
+  let v8 = stack_inputs[2];
+  let v6 = sub_g(v7, v8);
+  assert b_evaluations[3] = v6;
+  // deg = 1, Domain: the first row
+
+// Last Row
+
+  // (cur[1] - stack_outputs[0])
+  let v10 = cur[1];
+  let v11 = stack_outputs[0];
+  let v9 = sub_g(v10, v11);
+  assert b_evaluations[5] = v9;
+  // deg = 1, Domain: the last row
+
+  // (cur[2] - stack_outputs[1])
+  let v13 = cur[2];
+  let v14 = stack_outputs[1];
+  let v12 = sub_g(v13, v14);
+  assert b_evaluations[6] = v12;
+  // deg = 1, Domain: the last row
+
+  // (cur[3] - stack_outputs[2])
+  let v16 = cur[3];
+  let v17 = stack_outputs[2];
+  let v15 = sub_g(v16, v17);
+  assert b_evaluations[7] = v15;
+  // deg = 1, Domain: the last row
+
 
   return ();
 }
@@ -175,8 +221,49 @@ let last_z =  3883696794228705047;
   local first_sum_0 = 0;
   local last_sum_0 = 0;
 
-  let first = div_g(first_sum_0,first_z);
-  let last = div_g(last_sum_0,last_z);
+  // Merge degree 1
+  let evaluation_degree = 1 * (trace_length - 1);
+  let degree_adjustment = target_degree - evaluation_degree;
+  let xp = pow_g(x, degree_adjustment);
+
+  // Include boundary 0
+  let v1 = mul_g(coeffs_boundary_b[0],  xp);
+  let v2 = add_g(coeffs_boundary_a[0], v1);
+  let v3 = mul_g(v2, b_evaluations[0]);
+  local first_sum_1 = add_g(first_sum_0,v3);
+
+  // Include boundary 1
+  let v1 = mul_g(coeffs_boundary_b[1],  xp);
+  let v2 = add_g(coeffs_boundary_a[1], v1);
+  let v3 = mul_g(v2, b_evaluations[1]);
+  local first_sum_2 = add_g(first_sum_1,v3);
+
+  // Include boundary 2
+  let v1 = mul_g(coeffs_boundary_b[2],  xp);
+  let v2 = add_g(coeffs_boundary_a[2], v1);
+  let v3 = mul_g(v2, b_evaluations[2]);
+  local first_sum_3 = add_g(first_sum_2,v3);
+
+  // Include boundary 3
+  let v1 = mul_g(coeffs_boundary_b[3],  xp);
+  let v2 = add_g(coeffs_boundary_a[3], v1);
+  let v3 = mul_g(v2, b_evaluations[3]);
+  local last_sum_1 = add_g(last_sum_0,v3);
+
+  // Include boundary 4
+  let v1 = mul_g(coeffs_boundary_b[4],  xp);
+  let v2 = add_g(coeffs_boundary_a[4], v1);
+  let v3 = mul_g(v2, b_evaluations[4]);
+  local last_sum_2 = add_g(last_sum_1,v3);
+
+  // Include boundary 5
+  let v1 = mul_g(coeffs_boundary_b[5],  xp);
+  let v2 = add_g(coeffs_boundary_a[5], v1);
+  let v3 = mul_g(v2, b_evaluations[5]);
+  local last_sum_3 = add_g(last_sum_2,v3);
+
+  let first = div_g(first_sum_3,first_z);
+  let last = div_g(last_sum_3,last_z);
   return add_g(first,last);
 }
 
