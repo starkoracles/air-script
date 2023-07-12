@@ -83,50 +83,46 @@ func evaluate_boundary_0{range_check_ptr} (
   let cur = frame.current;
 // BOUNDARY CONSTRAINTS
 
-// First Row
-
-  // (cur[1] - stack_inputs[1])
+  // (cur[1] - stack_inputs[0])
   let v1 = cur[1];
-  let v2 = stack_inputs[1];
+  let v2 = stack_inputs[0];
   let v0 = sub_g(v1, v2);
-  assert b_evaluations[1] = v0;
+  assert b_evaluations[0] = v0;
   // deg = 1, Domain: the first row
 
-  // (cur[2] - stack_inputs[0])
+  // (cur[2] - stack_inputs[1])
   let v4 = cur[2];
-  let v5 = stack_inputs[0];
+  let v5 = stack_inputs[1];
   let v3 = sub_g(v4, v5);
-  assert b_evaluations[2] = v3;
+  assert b_evaluations[1] = v3;
   // deg = 1, Domain: the first row
 
   // (cur[3] - stack_inputs[2])
   let v7 = cur[3];
   let v8 = stack_inputs[2];
   let v6 = sub_g(v7, v8);
-  assert b_evaluations[3] = v6;
+  assert b_evaluations[2] = v6;
   // deg = 1, Domain: the first row
-
-// Last Row
 
   // (cur[1] - stack_outputs[0])
   let v10 = cur[1];
   let v11 = stack_outputs[0];
   let v9 = sub_g(v10, v11);
-  assert b_evaluations[5] = v9;
+  assert b_evaluations[3] = v9;
   // deg = 1, Domain: the last row
 
   // (cur[2] - stack_outputs[1])
   let v13 = cur[2];
   let v14 = stack_outputs[1];
   let v12 = sub_g(v13, v14);
-  assert b_evaluations[6] = v12;
+  assert b_evaluations[4] = v12;
   // deg = 1, Domain: the last row
 
   // (cur[3] - stack_outputs[2])
   let v16 = cur[3];
   let v17 = stack_outputs[2];
   let v15 = sub_g(v16, v17);
-  assert b_evaluations[7] = v15;
+  assert b_evaluations[5] = v15;
   // deg = 1, Domain: the last row
 
 

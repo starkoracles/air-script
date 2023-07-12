@@ -63,54 +63,9 @@ pub fn evaluate_boundaries(
     s
   };
 
-  let find_column = |column: usize, domain: ConstraintDomain, w: &ConstraintRoot| -> bool {
-    if w.domain != domain { false } else {
-      match graph.node(w.node_index()).op() 
-      {
-        Operation::Sub(nidx,_) => 
-        {
-          match graph.node(nidx).op() 
-          {
-            Operation::Value(te) => 
-              match te {
-                Value::TraceElement(ita) => ita.col_idx() == column,
-                _ => false // other than a trace element
-              },
-            _ => false // other than a value
-          }
-        }, // Sub
-        _ => false // some other thing than Sub
-      } // end of top level match
-    } // domain
-  };
- 
-  s = s + "// First Row\n\n";
-  for column in 0..trace_width {
-    let mut done = false;
-    for w in bc.iter() {
-      if !done && find_column (column, ConstraintDomain::FirstRow, w) {
-        s = s + &print_constraint(column,w);
-        done = true;
-      }
-    }
-    //if !done {
-    //  s = s + "  assert b_evaluations["+&column.to_string()+"] = 0;\n\n";
-    //}
-  }; 
-
-  s = s + "// Last Row\n\n";
-  for column in 0..trace_width {
-    let mut done = false;
-    for w in bc.iter() {
-      if find_column (column, ConstraintDomain::LastRow, w) {
-        s = s + &print_constraint(column+trace_width,w);
-        done = true;
-      }
-    }
-    //if !done {
-    //  s = s + "  assert b_evaluations["+&(column + trace_width).to_string()+"] = 0;\n\n";
-    //}
-  }; 
+  for (index, bcon) in boundary_constraints.iter().enumerate() {
+    s = s + &print_constraint(index,&bcon);
+  }
 
   let mut boundary_maxdeg : usize = 0;
   for w in boundary_degrees.iter() {
