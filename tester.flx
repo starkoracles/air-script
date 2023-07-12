@@ -403,9 +403,10 @@ assert main_boundary_constraint_groups_number == 2;
 endmatch;
 
 var b_trace = varray[string](main_trace_width * 2uz,"0");
-var b_expected_evals = varray[string](main_trace_width * 2uz,"0");
 var b_divisor_offsets = varray[string] main_boundary_constraint_groups_number.size;
 var b_nsteps = varray[int] main_boundary_constraint_groups_number.size;
+var total_bconstraints = 0;
+var b_expected_evals_list = Empty[string];
 
 for constraint_group in 0..main_boundary_constraint_groups_number - 1 do
   ++lno;
@@ -428,6 +429,7 @@ for constraint_group in 0..main_boundary_constraint_groups_number - 1 do
   | Some y => 
     println$  "group " + constraint_group.str + ", nconstraints "+ y.1+", denominator " + y.2;
     var ncon = y.1.int;
+total_bconstraints += ncon;
     var den = y.2;
   | None => println$ "Parse "+lno.str+" failed";
     System::exit 42;
@@ -445,7 +447,8 @@ for constraint_group in 0..main_boundary_constraint_groups_number - 1 do
       var trace_value = y.2;
       var x = y.3;
       var evaluation = y.4;
-set (b_expected_evals, b_column.size + main_trace_width * constraint_group.size, evaluation);
+b_expected_evals_list = Cons (evaluation, b_expected_evals_list);
+//set (b_expected_evals, b_column.size + main_trace_width * constraint_group.size, evaluation);
 set (b_trace, b_column.size + main_trace_width * constraint_group.size, trace_value);
 
       println$ "group " + constraint_group.str + ", column " + b_column.str + ", x: " + x.str + ", expeced eval = " + evaluation;
@@ -454,6 +457,9 @@ set (b_trace, b_column.size + main_trace_width * constraint_group.size, trace_va
     endmatch;
   done
 done
+
+var b_expected_evals = varray (rev(b_expected_evals_list));
+
 
 println$ "WLOG PARSE COMPLETE OK";
 
@@ -614,7 +620,7 @@ func test_transition_constraints{range_check_ptr}() {
     %{
         expected_b_evals = """+py_bevals+"""
         print("Boundary Evaluations")
-        for i in range("""+(main_trace_width * 2uz).str+"""):
+        for i in range("""+(total_bconstraints).str+"""):
             print(i, memory[ids.b_evaluations_ptr + i])
             assert memory[ids.b_evaluations_ptr + i] == expected_b_evals[i]
     %}

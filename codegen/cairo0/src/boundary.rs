@@ -50,6 +50,7 @@ pub fn evaluate_boundaries(
 
   let bc = &boundary_constraints;
 
+if false {
   let mut print_constraint = |i:usize, w: &ConstraintRoot| -> String {
     //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
     let mut s = "  // ".to_string() + &str(&graph,&w.index) + "\n";
@@ -111,6 +112,7 @@ pub fn evaluate_boundaries(
       s = s + "  assert b_evaluations["+&(column + trace_width).to_string()+"] = 0;\n\n";
     }
   }; 
+};
 
   let mut boundary_maxdeg : usize = 0;
   for w in boundary_degrees.iter() {
