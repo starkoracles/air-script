@@ -643,26 +643,22 @@ func test_transition_constraints{range_check_ptr}() {
   }
 +
 """
-    // Evaluate divisor
+    // FROM PROVER
     let x = """ + x + """;
     let trace_length = """+ trace_length.str + """;
-    let g = """ + trace_domain_generator + """;
-    //let numerator = pow_g(x, trace_length);
-    //let numerator = numerator - 1;
-    //let denominator1 = pow_g(g, trace_length - 1);
-    //let denominator1 = sub_g(x, denominator1);
-    //let denominator2 = pow_g(g, trace_length - 2);
-    //let denominator2 = sub_g(x, denominator2);
-    //let denominator = mul_g(denominator1, denominator2);
-    //let z = div_g(numerator, denominator);
-    //%{
-    //   print("z ",ids.z)
-    //%}
+    let trace_domain_generator = """ + trace_domain_generator + """;
+    let blowup_factor = """ + blowup_factor.str + """;
+    let npub_steps = """ + b_nsteps.1.str + """;
+    let main_transition_constraints_target_degree = """ + main_transition_constraints_target_degree.str + """;
 
-    let t_combined = merge_transitions_0(""" + 
-      trace_length.str + """, """ + 
-      main_transition_constraints_target_degree + """, coeffs_transition_a, coeffs_transition_b, t_evaluations, x, 
-      """+ trace_domain_generator + """
+
+    let t_combined = merge_transitions_0(  
+      trace_length,  
+      main_transition_constraints_target_degree,
+      coeffs_transition_a, coeffs_transition_b, 
+      t_evaluations, 
+      x, 
+      trace_domain_generator
      );
 
     %{
@@ -688,12 +684,12 @@ func test_transition_constraints{range_check_ptr}() {
   }
 +
 """
-    let npub_steps = """+b_nsteps.1.str+""";
 
-    let b_combined = merge_boundary_0(""" +
-     trace_length.str + """, """ +
-     blowup_factor.str + """,  coeffs_boundary_a, coeffs_boundary_b, b_evaluations, """ + 
-     trace_domain_generator + """, npub_steps , x ); 
+    let b_combined = merge_boundary_0(
+     trace_length,
+     blowup_factor, 
+     coeffs_boundary_a, coeffs_boundary_b, b_evaluations,  
+     trace_domain_generator, npub_steps, x ); 
 %{
 print("b_combined = ", ids.b_combined)
 print("Expected 4219772168637362433")
