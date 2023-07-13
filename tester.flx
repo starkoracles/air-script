@@ -14,7 +14,7 @@ var generated_cairo_f = "examples/example.cairo";
 var generated_rust_f = "examples/example.rs";
 
 // Winterfell 
-var winterfell_main_f = "examples/example.winterfell"; // Hard coded top level Winterfell mainline for this test
+var winterfell_main_f = "examples/example_winterfell_main.rs"; // Hard coded top level Winterfell mainline for this test
 var file_to_copy_winterfell_main_to_f = "examples/tests/winterfell/src/main.rs"; 
 var file_to_copy_generated_rust_to_f = "examples/tests/cairo/example.rs"; 
 var public_names_f = "example.public";
