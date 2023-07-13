@@ -1,51 +1,98 @@
 // Temporarily, test script in top level of repo
+
+// To print the time in generated files
 include "web/low_res_time";
 open LowResTime;
 var tod = #time_t.gmtime.asctime;
 
-
-open Regdef;
-
-include "./flx/lib/winterfell_driver";
 include "./flx/lib/winterfell_public";
 include "./flx/lib/parse_wlog";
 include "./flx/lib/cairo_verifier";
 
+// ************************************************************* 
+// Filenames
+// Aero input and output
+var input_air_f = "examples/example.air";
+var generated_cairo_f = "examples/example.cairo";
+var generated_rust_f = "examples/example.rs";
 
-// Start by parsing output from Winterfell run
+// Winterfell 
+var winterfell_main_f = "examples/example.winterfell"; 
+var file_to_copy_winterfell_main_to_f = "examples/tests/winterfell/src/main.rs"; 
+var public_names_f = "example.public";
+var log_filename_f = "example.wlog";
 
+// Protostar inputs
+var test_filename_f = "examples/tests/cairo/test_air.cairo";
+var file_to_copy_generated_cairo_to_f = "examples/tests/cairo/example.cairo"; // for running the test
+var file_to_copy_generated_rust_to_f = "examples/tests/cairo/example.rs"; // for running the test
+
+ 
+// ************************************************************* 
 // RUN AIRSCRIPT 
-var result = System::system "cargo run --bin airc -- transpile -i examples/example.air";
-println$ "AIRSCIPT result = " + result.str;
-if result != 0 perform System::exit result;
+begin 
+  var result = System::system$ "cargo run --bin airc -- transpile -i " + input_air_f;
+  println$ "AIRSCIPT " + input_air_f " + result = " + result.str;
+  if result != 0 perform System::exit result;
+end
 
-build_winterfell();
 
+// ************************************************************* 
+// BUILD AND RUN HACKED WINTERFELL FOR THIS AIR
+// We do this for two reasons:
+//
+// 1. To get data out of the prover the verifier needs
+// 2. To get values out of the Rust verifier to check our cairo one
+//
+// The hacked Winterfell contains log outputs which we subsequently
+// parse to get the requisite values.
+
+
+// COPY WINTERFELL VERIFIER
+begin
+  var result = System::system$ "cp " + generated_rust_f + " "  +  file_to_copy_generated_rust_to_f;
+  println$ "COPIED example.rs" + result.str;
+  if result != 0 perform System::exit result;
+end
+
+// COPY WINTERFELL HAND CODED MAIN
+begin
+  var result = System::system$ "cp " +winterfell_main_f + " "  +  file_to_copy_winterfell_main_to_f;
+  println$ "winterfell main " + result.str;
+  if result != 0 perform System::exit result;
+end
+
+// RUN WINTERFELL to get required data and results for comparison
+begin
+  var result = System::system "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release";
+  println$ "WINTERFELL result = " + result.str;
+  if result != 0 perform System::exit result;
+end
+
+// ************************************************************* 
 // PARSE PUBLIC INPUT NAMES FILE
-
-var pub_data = parse_winterfell_public("example.public"); 
+var pub_data = parse_winterfell_public(public_names_f); 
 
 // PARSE WINTERFELL GENERATED LOG FILE 
-var test_filename = "examples/tests/cairo/test_air.cairo";
-var log_filename = "example.wlog";
+var parse_data = parse_wlog(log_filename_f);
 
 
-fun arr2list (x:string) {
-  return split(x.[1 to -1],",");
-}
-
-var parse_data = parse_wlog(log_filename);
-
+// ************************************************************* 
+// GENERATE THE CAIRO VERIFIER and SAVE IT
 var output = gen_cairo_verifier parse_data;
- 
-save(test_filename, output);
+save(test_filename_f, output);
 
+// ************************************************************* 
 // COPY VERIFIER TO WHERE PROTOSTAR CAN FIND IT
-result = System::system "cp examples/example.cairo examples/tests/cairo/example.cairo";
-println$ "CP result = " + result.str;
+begin 
+  var result = System::system ("cp " + generated_cairo_f + " " + file_to_copy_generated_cairo_to_f);
+  println$ "CP result = " + result.str;
+end
 
 // RUN PROTOSTAR CAIRO VERIFIER TEST
-result = System::system "protostar --no-color -p unit test";
-println$ "PROTOSTAR result = " + result.str;
+begin
+  var result = System::system "protostar --no-color -p unit test";
+  println$ "PROTOSTAR result = " + result.str;
+end
 
 

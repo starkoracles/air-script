@@ -1,4 +1,3 @@
-
 use std::fs::File;
 use std::marker::PhantomData;
 
@@ -97,3 +96,4 @@ fn main() {
     verify::<ExampleAir, Blake3_192<Felt>, DefaultRandomCoin<Blake3_192<Felt>>>(proof, pub_inputs)
         .unwrap();
 }
+

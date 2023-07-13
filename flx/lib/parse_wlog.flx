@@ -1,4 +1,6 @@
 gen parse_wlog(log_filename: string) {
+  open Regdef;
+
 
   var text = load log_filename;
   var lines = split (text, "\n");
