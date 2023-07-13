@@ -1,0 +1,30 @@
+
+// PARSE PUBLIC INPUT NAMES FILE
+
+gen parse_winterfell_public(filename) {
+  open Regdef;
+
+  var pubs = (load(filename),"\n").split.varray;
+  var pub_inputs = pubs.len - 1; // due to trailing newline
+  println$ "PUBLIC INPUT COUNT = " + pub_inputs.str; 
+  var pub_data = varray[string * int] pub_inputs.size;
+  begin
+    regdef pubdesc = group (perl("\\w+")) " " group (perl("\\d+"));
+    var pubdesc_r = RE2 pubdesc.render;
+    for i in 0uz .. pub_inputs - 1uz do
+      var xx = Match(pubdesc_r, pubs.i);
+      match xx with
+      | Some v =>
+         var name = v.1;
+         var siz = v.2.int;
+         push_back(pub_data, (name,siz.int));
+         println$ "Public input '" + name + "', length " + siz.str;
+      | None =>
+        println$ "FAILURE PARSING PUBLIC INPUT NAMES '" + pubs.i+"'";
+        System::exit 42;
+      endmatch;
+    done
+  end
+  return pub_data;
+}
+
