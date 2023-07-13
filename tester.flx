@@ -19,13 +19,13 @@ var generated_rust_f = "examples/example.rs";
 // Winterfell 
 var winterfell_main_f = "examples/example.winterfell"; 
 var file_to_copy_winterfell_main_to_f = "examples/tests/winterfell/src/main.rs"; 
+var file_to_copy_generated_rust_to_f = "examples/tests/cairo/example.rs"; 
 var public_names_f = "example.public";
 var log_filename_f = "example.wlog";
 
 // Protostar inputs
-var test_filename_f = "examples/tests/cairo/test_air.cairo";
+var protostar_test_filename_f = "examples/tests/cairo/test_air.cairo";
 var file_to_copy_generated_cairo_to_f = "examples/tests/cairo/example.cairo"; // for running the test
-var file_to_copy_generated_rust_to_f = "examples/tests/cairo/example.rs"; // for running the test
 
  
 // ************************************************************* 
@@ -48,14 +48,14 @@ end
 // parse to get the requisite values.
 
 
-// COPY WINTERFELL VERIFIER
+// COPY WINTERFELL VERIFIER (Rust code)
 begin
   var result = System::system$ "cp " + generated_rust_f + " "  +  file_to_copy_generated_rust_to_f;
   println$ "COPIED example.rs" + result.str;
   if result != 0 perform System::exit result;
 end
 
-// COPY WINTERFELL HAND CODED MAIN
+// COPY WINTERFELL HAND CODED MAIN (Rust code)
 begin
   var result = System::system$ "cp " +winterfell_main_f + " "  +  file_to_copy_winterfell_main_to_f;
   println$ "winterfell main " + result.str;
@@ -79,8 +79,10 @@ var parse_data = parse_wlog(log_filename_f);
 
 // ************************************************************* 
 // GENERATE THE CAIRO VERIFIER and SAVE IT
-var output = gen_cairo_verifier parse_data;
-save(test_filename_f, output);
+begin
+  var output = gen_cairo_verifier parse_data pub_data;
+  save(protostar_test_filename_f, output);
+end
 
 // ************************************************************* 
 // COPY VERIFIER TO WHERE PROTOSTAR CAN FIND IT
