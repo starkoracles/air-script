@@ -122,10 +122,25 @@ impl CodeGenerator {
        s = s + "  coeffs_transition_b: felt*, \n";
        s = s + "  t_evaluations: felt*, \n";
        s = s + "  x: felt, \n";
-       s = s + "  z: felt, \n";
+       s = s + "  trace_domain_generator: felt, \n";
        s = s + ") -> felt {\n";
        s = s + "  alloc_locals;\n";
        s = s + "  local sum_0 = 0;\n";
+
+       s = s + "  // Evaluate divisor\n";
+       s = s + "  let g = trace_domain_generator;\n";
+       s = s + "  let numerator = pow_g(x, trace_length);\n";
+       s = s + "  let numerator = numerator - 1;\n";
+       s = s + "  let denominator1 = pow_g(g, trace_length - 1);\n";
+       s = s + "  let denominator1 = sub_g(x, denominator1);\n";
+       s = s + "  let denominator2 = pow_g(g, trace_length - 2);\n";
+       s = s + "  let denominator2 = sub_g(x, denominator2);\n";
+       s = s + "  let denominator = mul_g(denominator1, denominator2);\n";
+       s = s + "  let z = div_g(numerator, denominator);\n";
+       s = s + "  %{\n";
+       s = s + "    print('transition z ',ids.z)\n";
+       s = s + "  %}\n";
+
        let mut counter = 0;
        for deg in 0 .. (transition_maxdeg+1) {
          let mut ntrans = 0;
@@ -167,9 +182,23 @@ impl CodeGenerator {
        s = s + "  trace_domain_generator: felt, \n";
        s = s + "  npub_steps: felt, \n";
        s = s + "  x: felt, \n";
-       s = s + "  z: felt, \n";
        s = s + ") -> felt {\n";
        s = s + "  alloc_locals;\n";
+
+       s = s + "  // Evaluate divisor\n";
+       s = s + "  let g = trace_domain_generator;\n";
+       s = s + "  let numerator = pow_g(x, trace_length);\n";
+       s = s + "  let numerator = numerator - 1;\n";
+       s = s + "  let denominator1 = pow_g(g, trace_length - 1);\n";
+       s = s + "  let denominator1 = sub_g(x, denominator1);\n";
+       s = s + "  let denominator2 = pow_g(g, trace_length - 2);\n";
+       s = s + "  let denominator2 = sub_g(x, denominator2);\n";
+       s = s + "  let denominator = mul_g(denominator1, denominator2);\n";
+       s = s + "  let z = div_g(numerator, denominator);\n";
+       s = s + "  %{\n";
+       s = s + "    print('boundary z ',ids.z)\n";
+       s = s + "  %}\n";
+
 
        s = s + "  let composition_degree = trace_length * blowup_factor - 1;\n";
        s = s + "  let trace_poly_degree = trace_length  - 1;\n";

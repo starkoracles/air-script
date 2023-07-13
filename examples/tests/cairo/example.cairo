@@ -136,10 +136,23 @@ func merge_transitions_0{range_check_ptr}(
   coeffs_transition_b: felt*, 
   t_evaluations: felt*, 
   x: felt, 
-  z: felt, 
+  trace_domain_generator: felt, 
 ) -> felt {
   alloc_locals;
   local sum_0 = 0;
+  // Evaluate divisor
+  let g = trace_domain_generator;
+  let numerator = pow_g(x, trace_length);
+  let numerator = numerator - 1;
+  let denominator1 = pow_g(g, trace_length - 1);
+  let denominator1 = sub_g(x, denominator1);
+  let denominator2 = pow_g(g, trace_length - 2);
+  let denominator2 = sub_g(x, denominator2);
+  let denominator = mul_g(denominator1, denominator2);
+  let z = div_g(numerator, denominator);
+  %{
+    print('transition z ',ids.z)
+  %}
 
   // Merge degree 1
   let evaluation_degree = 1 * (trace_length - 1);
@@ -191,9 +204,21 @@ func merge_boundary_0{range_check_ptr}(
   trace_domain_generator: felt, 
   npub_steps: felt, 
   x: felt, 
-  z: felt, 
 ) -> felt {
   alloc_locals;
+  // Evaluate divisor
+  let g = trace_domain_generator;
+  let numerator = pow_g(x, trace_length);
+  let numerator = numerator - 1;
+  let denominator1 = pow_g(g, trace_length - 1);
+  let denominator1 = sub_g(x, denominator1);
+  let denominator2 = pow_g(g, trace_length - 2);
+  let denominator2 = sub_g(x, denominator2);
+  let denominator = mul_g(denominator1, denominator2);
+  let z = div_g(numerator, denominator);
+  %{
+    print('boundary z ',ids.z)
+  %}
   let composition_degree = trace_length * blowup_factor - 1;
   let trace_poly_degree = trace_length  - 1;
   let divisor_degree = 1;

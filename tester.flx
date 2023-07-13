@@ -447,9 +447,8 @@ total_bconstraints += ncon;
       var trace_value = y.2;
       var x = y.3;
       var evaluation = y.4;
-b_expected_evals_list = Cons (evaluation, b_expected_evals_list);
-//set (b_expected_evals, b_column.size + main_trace_width * constraint_group.size, evaluation);
-set (b_trace, b_column.size + main_trace_width * constraint_group.size, trace_value);
+      b_expected_evals_list = Cons (evaluation, b_expected_evals_list);
+      set (b_trace, b_column.size + main_trace_width * constraint_group.size, trace_value);
 
       println$ "group " + constraint_group.str + ", column " + b_column.str + ", x: " + x.str + ", expeced eval = " + evaluation;
     | None => println$ "Parse of boundary data, group " + constraint_group.str + ", column " + bcon.str + " FAILED";  
@@ -648,21 +647,23 @@ func test_transition_constraints{range_check_ptr}() {
     let x = """ + x + """;
     let trace_length = """+ trace_length.str + """;
     let g = """ + trace_domain_generator + """;
-    let numerator = pow_g(x, trace_length);
-    let numerator = numerator - 1;
-    let denominator1 = pow_g(g, trace_length - 1);
-    let denominator1 = sub_g(x, denominator1);
-    let denominator2 = pow_g(g, trace_length - 2);
-    let denominator2 = sub_g(x, denominator2);
-    let denominator = mul_g(denominator1, denominator2);
-    let z = div_g(numerator, denominator);
-    %{
-       print("z ",ids.z)
-    %}
+    //let numerator = pow_g(x, trace_length);
+    //let numerator = numerator - 1;
+    //let denominator1 = pow_g(g, trace_length - 1);
+    //let denominator1 = sub_g(x, denominator1);
+    //let denominator2 = pow_g(g, trace_length - 2);
+    //let denominator2 = sub_g(x, denominator2);
+    //let denominator = mul_g(denominator1, denominator2);
+    //let z = div_g(numerator, denominator);
+    //%{
+    //   print("z ",ids.z)
+    //%}
 
     let t_combined = merge_transitions_0(""" + 
       trace_length.str + """, """ + 
-      main_transition_constraints_target_degree + """, coeffs_transition_a, coeffs_transition_b, t_evaluations, x, z);
+      main_transition_constraints_target_degree + """, coeffs_transition_a, coeffs_transition_b, t_evaluations, x, 
+      """+ trace_domain_generator + """
+     );
 
     %{
         print(ids.t_combined)
@@ -692,7 +693,7 @@ func test_transition_constraints{range_check_ptr}() {
     let b_combined = merge_boundary_0(""" +
      trace_length.str + """, """ +
      blowup_factor.str + """,  coeffs_boundary_a, coeffs_boundary_b, b_evaluations, """ + 
-     trace_domain_generator + """, npub_steps , x, z); 
+     trace_domain_generator + """, npub_steps , x ); 
 %{
 print("b_combined = ", ids.b_combined)
 print("Expected 4219772168637362433")
