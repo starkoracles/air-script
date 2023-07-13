@@ -1,0 +1,378 @@
+gen parse_wlog(log_filename: string) {
+
+  var text = load log_filename;
+  var lines = split (text, "\n");
+  var vlines = varray lines;
+
+  var counter = 0;
+  for line in vlines do
+    println$ counter.str + ":  " + line;
+    ++counter;
+  done
+
+  regdef digit = charset "0123456789";
+  regdef number = digit+;
+  regdef numberz = number (", " number)*;
+  regdef vector = "(" numberz ")";
+  regdef narr = "[" numberz? "]";
+  regdef varr = "[" vector (", " vector)* "]";
+
+  println$ "\nPARSE\n";
+
+  //0
+  var lno = 0;
+  regdef l1 = "public_inputs: " group (narr);
+  var r1 = RE2 l1.render;
+  var x1 = Match(r1, vlines.lno);
+  match x1 with
+  | Some y => 
+  var public_inputs = y.1;
+    println$  "public_inputs: " + y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  //1
+  ++lno;
+  regdef l1a = "main_transition_constraints - target degree: " group (number);
+  var r1a = RE2 l1a.render;
+  var x1a = Match(r1a, vlines.lno);
+  match x1a with
+  | Some y => 
+    println$  "main_transition_constraints target degree: " + y.1;
+  var main_transition_constraints_target_degree = y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+
+  //2
+  ++lno;
+  //regdef l2 = "main_constraint_coeffs: "  group (varr);
+  //var r2 = RE2 l2.render;
+  //var x2 = Match(r2, vlines.lno);
+  //match x2 with
+  //| Some y => 
+  //var main_constraint_coeffs = y.1;
+    //println$  "main_constraint_coeffs: " + y.1;
+  //| None => println$ "Parse "+lno.str+" failed";
+    //System::exit 42;
+  //endmatch;
+
+  //3
+  ++lno;
+  regdef l2a = "aux_constraints_number: "  group (number);
+  var r2a = RE2 l2a.render;
+  var x2a = Match(r2a, vlines.lno);
+  match x2a with
+  | Some y => 
+    println$  "aux_constraints_number: " + y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  //4
+  ++lno;
+  regdef l3 = 
+    "main_trace_frame: EvaluationFrame { current: "  
+     group (narr)
+     ", next: "
+     group(narr)
+     " }"
+  ;
+  var r3 = RE2 l3.render;
+  var x3 = Match(r3, vlines.lno);
+  match x3 with
+  | Some y => 
+    println$  "main_trace_frame: current: " + y.1;
+    println$  "main_trace_frame: next: " + y.2;
+  var main_trace_current = y.1;
+  var main_trace_next = y.2;
+  var main_trace_width = (main_trace_current,",").split.len;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  //5
+  ++lno;
+  regdef l4 = "aux_trace_frame: " group (narr | "None");
+  var r4 = RE2 l4.render;
+  var x4 = Match(r4, vlines.lno);
+  match x4 with
+  | Some y => 
+    println$  "aux_trace_frame: " + y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  //6
+  ++lno;
+  regdef l5 = "aux_trace_rand_elements: AuxTraceRandElements(" group(narr?) ")";
+  var r5 = RE2 l5.render;
+  var x5 = Match(r5, vlines.lno);
+  match x5 with
+  | Some y => 
+    println$  "aux_trace_rand_elements: " + y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  //7
+  ++lno;
+  regdef l6 = "x: " group(number);
+  var r6 = RE2 l6.render;
+  var x6 = Match(r6, vlines.lno);
+  match x6 with
+  | Some y => 
+    println$  "x: " + y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  //8
+  ++lno;
+  regdef l7 = "periodic_values: " group(narr);
+  var r7 = RE2 l7.render;
+  var x7 = Match(r7, vlines.lno);
+  match x7 with
+  | Some y => 
+    println$  "periodic_values: " + y.1;
+  var periodic_values = y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  //9
+  ++lno;
+  regdef l8a = "trace_length: " group(number);
+  var r8a = RE2 l8a.render;
+  var x8a = Match(r8a, vlines.lno);
+  match x8a with
+  | Some y => 
+  var trace_length= y.1.int;
+    println$ "trace_length: " +  y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  //10
+  ++lno;
+  regdef l8b = "trace_domain_generator: " group(number);
+  var r8b = RE2 l8b.render;
+  var x8b = Match(r8b, vlines.lno);
+  match x8b with
+  | Some y => 
+  var trace_domain_generator = y.1;
+    println$ "trace_domain_generator: " +  y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  ++lno;
+  regdef l18c = "composition_coefficients: ConstraintCompositionCoefficients { " 
+  "transition: " group(varr) ", "
+  "boundary: " group(varr) 
+  " }";
+  var r18c = RE2 l18c.render;
+  var x18c = Match(r18c, vlines.lno);
+  match x18c with 
+  | Some y =>
+  var main_t_coeffs= y.1;
+  var main_b_coeffs = y.2;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  ++lno;
+  regdef l18d = "blowup_factor: " group(number);
+  var r18d = RE2 l18d.render;
+  var x18d = Match(r18d, vlines.lno);
+  match x18d with
+  | Some y => 
+  var blowup_factor = y.1.int;
+    println$ "blowup_factor: " +  blowup_factor.str;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+
+  //13
+  ++lno;
+  regdef l8 = "t_evaluations1: " group(narr);
+  var r8 = RE2 l8.render;
+  var x8 = Match(r8, vlines.lno);
+  match x8 with
+  | Some y => 
+  var t_evaluations1 = y.1;
+    println$ "t_evaluations1: " +  y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  ++lno;
+  regdef l9 = "t_evaluations2: " group(narr);
+  var r9 = RE2 l9.render;
+  var x9 = Match(r9, vlines.lno);
+  match x9 with
+  | Some y => 
+  var t_evaluations2 = y.1;
+    println$  "t_evaluations2: " + y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+  ++lno;
+  ++lno;
+  regdef l10 = "t_combined: " group(number);
+  var r10 = RE2 l10.render;
+  var x10 = Match(r10, vlines.lno);
+  match x10 with
+  | Some y => 
+    println$  "t_combined: " + y.1;
+  var t_combined = y.1;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  ++lno;
+  regdef l14 = "main_boundary_constraint_groups_number: " group(number);
+  var r14 = RE2 l14.render;
+  var x14 = Match(r14, vlines.lno);
+  match x14 with
+  | Some y => 
+    println$  "main_boundary_constraint_groups_number: " + y.1;
+  var main_boundary_constraint_groups_number = y.1.int;
+  assert main_boundary_constraint_groups_number == 2;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+  var b_trace = varray[string](main_trace_width * 2uz,"0");
+  var b_divisor_offsets = varray[string] main_boundary_constraint_groups_number.size;
+  var b_nsteps = varray[int] main_boundary_constraint_groups_number.size;
+  var total_bconstraints = 0;
+  var b_expected_evals_list = Empty[string];
+
+  for constraint_group in 0..main_boundary_constraint_groups_number - 1 do
+    ++lno;
+    regdef l15a = "b_constraint_group divisor_offset: " group(number) ", num_steps: " group(number);
+    var r15a = RE2 l15a.render;
+    var x15a = Match(r15a, vlines.lno);
+    match x15a with
+    | Some y =>
+      push_back(b_divisor_offsets, y.1);
+      push_back(b_nsteps, y.2.int);
+    | None => println$ "Parse "+lno.str+" failed";
+      System::exit 42;
+    endmatch;
+
+    ++lno;
+    regdef l15 = "constraint_group, number_of_constraints: " group(number) ", denominator: " group(number);
+    var r15 = RE2 l15.render;
+    var x15 = Match(r15, vlines.lno);
+    match x15 with
+    | Some y => 
+      println$  "group " + constraint_group.str + ", nconstraints "+ y.1+", denominator " + y.2;
+      var ncon = y.1.int;
+  total_bconstraints += ncon;
+      var den = y.2;
+    | None => println$ "Parse "+lno.str+" failed";
+      System::exit 42;
+    endmatch;
+    
+    for bcon in 0..ncon - 1 do
+      ++lno;
+      regdef l16 = "b_column: " group(number) ", trace_value: " group(number) + ", x: "  group(number) + ", evaluation: " group(number);
+      var r16 = RE2 l16.render;
+      var x16 = Match(r16, vlines.lno);
+      match x16 with
+      | Some y => 
+        var b_column = y.1.int;
+        //assert bcon == b_column - 1;
+        var trace_value = y.2;
+        var x = y.3;
+        var evaluation = y.4;
+        b_expected_evals_list = Cons (evaluation, b_expected_evals_list);
+        set (b_trace, b_column.size + main_trace_width * constraint_group.size, trace_value);
+
+        println$ "group " + constraint_group.str + ", column " + b_column.str + ", x: " + x.str + ", expeced eval = " + evaluation;
+      | None => println$ "Parse of boundary data, group " + constraint_group.str + ", column " + bcon.str + " FAILED";  
+        System::exit 42;
+      endmatch;
+    done
+  done
+
+  var b_expected_evals = varray (rev(b_expected_evals_list));
+
+  println$ "WLOG PARSE COMPLETE OK";
+
+  //println$ "Boundary trace row " + b_trace.str;
+  //println$ "Boundary expected evals " + b_expected_evals.str;
+  var py_bevals = "[";
+  for s in b_expected_evals perform py_bevals += s +", ";
+  py_bevals += "]";
+  //println$ "Boundary expected evals (as python) " + py_bevals;
+
+  var t_coeffs = (main_t_coeffs.[1 to -1],",").split;
+  //println$ "SPLIT COEFFS = " + coeffs.str;
+  var n_t_coeffs = t_coeffs.len / 2uz;
+  var t_coeffs_a = varray[string] n_t_coeffs;
+  var t_coeffs_b = varray[string] n_t_coeffs;
+  regdef num = (" " | "(" | " (")? group(number) ")"?;
+  var t_num_r = RE2 num.render;
+  var t_count = 0uz;
+  for e in t_coeffs do
+    match Match (t_num_r, e) with
+    | Some y => println$ y.1;
+      if t_count % 2uz == 0uz do push_back(t_coeffs_a, y.1); else push_back(t_coeffs_b, y.1); done
+      ++t_count;
+    | None => println$ "PARSE FAIL TRANSITION COEFFS";
+    endmatch;
+  done
+
+  var b_coeffs = (main_b_coeffs.[1 to -1],",").split;
+  //println$ "SPLIT COEFFS = " + coeffs.str;
+  var n_b_coeffs = b_coeffs.len / 2uz;
+  var b_coeffs_a = varray[string] n_b_coeffs;
+  var b_coeffs_b = varray[string] n_b_coeffs;
+  regdef b_num = (" " | "(" | " (")? group(number) ")"?;
+  var b_num_r = RE2 b_num.render;
+  var b_count = 0uz;
+  for e in b_coeffs do
+    match Match (b_num_r, e) with
+    | Some y => println$ y.1;
+      if b_count % 2uz == 0uz do push_back(b_coeffs_a, y.1); else push_back(b_coeffs_b, y.1); done
+      ++b_count;
+    | None => println$ "PARSE FAIL TRANSITION COEFFS";
+    endmatch;
+  done
+  return
+    b_trace,
+    t_coeffs_a,
+    t_coeffs_b,
+    b_coeffs_a,
+    b_coeffs_b,
+
+    main_trace_current,
+    main_trace_next,
+    main_trace_width,
+
+    t_evaluations1,
+    py_bevals,
+    total_bconstraints.size,
+
+    x,
+    trace_length.size,
+    trace_domain_generator,
+
+    blowup_factor.size,
+    b_nsteps.1.size,
+    main_transition_constraints_target_degree,
+    t_combined,
+
+    periodic_values,
+    public_inputs
+  ;
+}
+
+
+
