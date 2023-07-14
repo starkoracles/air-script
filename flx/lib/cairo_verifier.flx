@@ -1,0 +1,235 @@
+include "web/low_res_time";
+fun arr2list (x:string) {
+  return split(x.[1 to -1],",");
+}
+
+fun generate_public_inputs(public_inputs: string)
+{ 
+  var s = "\n  // public inputs\n";
+  var p = (public_inputs.[1 to -1], ",").split.varray;
+  var ixno = 0;
+  for pd in pub_data do
+    var name = pd.0;
+    s = s + "\n    let ("+name+": felt*) = alloc();\n";
+    for lno in 0..<pd.1 do
+      s = s + "    assert "+name+"["+lno.str+"] = " + p.ixno + ";\n";
+      ++ixno;
+    done
+  done
+  return s;
+}
+
+fun generate_coeffs(cairo_name: string, coeffs: varray[string])
+{
+  var s = "    let (" + cairo_name + ": felt*) = alloc();\n";
+  var counter = 0;
+  for x in coeffs do
+    s = s + "    assert " + cairo_name + " ["+counter.str+"] = " + x + ";\n";
+    ++counter;
+  done
+  return s;
+}
+
+fun generate_periodic_values(periodic_values: string)
+{
+  var ps = periodic_values.arr2list.varray;
+  var s = "";
+  for i in 0uz..<ps.len do
+    &s <- s + "    assert periodic["+i.str+"] = "+ps.i.str+";\n";
+  done
+  return s;
+}
+ 
+fun generate_b_coeffs(b_coeffs_a: varray[string], b_coeffs_b: varray[string]) 
+=> 
+  generate_coeffs("coeffs_boundary_a", b_coeffs_a) + 
+  generate_coeffs("coeffs_boundary_b", b_coeffs_b)
+;
+fun generate_t_coeffs(t_coeffs_a: varray[string], t_coeffs_b: varray[string]) 
+=> 
+  generate_coeffs("coeffs_transition_a", t_coeffs_a) + 
+  generate_coeffs("coeffs_transition_b", t_coeffs_b)
+;
+
+fun gen_cairo_verifier(
+  b_trace: varray[string],
+  t_coeffs_a: varray[string],
+  t_coeffs_b: varray[string],
+  b_coeffs_a: varray[string],
+  b_coeffs_b: varray[string],
+
+  main_trace_current:string,
+  main_trace_next:string,
+  main_trace_width:size,
+
+  t_evaluations1: string,
+  py_bevals: string,
+  total_bconstraints: size,
+
+  x: string,
+  trace_length: size,
+  trace_domain_generator: string,
+
+  blowup_factor: size,
+  b_nsteps:size,
+  main_transition_constraints_target_degree: string,
+  t_combined: string,
+
+  periodic_values: string, // FIXME
+  public_inputs: string // FIXME
+) 
+(
+  pub_data: varray[string * int]
+)
+{
+  open LowResTime;
+  var tod = #time_t.gmtime.asctime;
+
+
+  // GENERATE CAIRO VERIFIER
+  var output = 
+  """
+  // GENERATED """ + tod + """
+  %lang starknet
+
+  from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
+  from starkware.cairo.common.hash import HashBuiltin
+  from starkware.cairo.common.alloc import alloc
+  from examples.tests.cairo.example import EvaluationFrame, evaluate_transition_0, evaluate_boundary_0, merge_transitions_0, merge_boundary_0
+  from math_goldilocks import add_g, sub_g, mul_g, pow_g, div_g
+
+  @external
+  func test_transition_constraints{range_check_ptr}() {
+      alloc_locals;
+      let (periodic: felt*) = alloc();
+  """
+  +
+  generate_periodic_values(periodic_values)
+     
+  +
+  """
+      let (current_frame: felt*) = alloc();
+      let (next_frame: felt*) = alloc();
+      %{
+          current_frame_ptr = ids.current_frame
+          for val in """ + main_trace_current + """:
+                 memory[current_frame_ptr] = val
+                 current_frame_ptr = current_frame_ptr + 1
+
+          next_frame_ptr = ids.next_frame
+          for next_val in """+main_trace_next+""":
+              memory[next_frame_ptr] = next_val
+              next_frame_ptr = next_frame_ptr + 1
+      %}
+
+      let (t_evaluations: felt*) = alloc();
+      local t_evaluations_ptr: felt* = t_evaluations;
+      let main_frame = EvaluationFrame("""+main_trace_width.str+""", current_frame, """+main_trace_width.str+""", next_frame);
+
+      evaluate_transition_0(main_frame, t_evaluations, periodic);
+      %{
+          expected_t_evals = """t_evaluations1+"""
+          print("Transition Evaluations")
+          for i in range("""+main_trace_width.str+"""):
+              print(i, memory[ids.t_evaluations_ptr + i])
+              assert memory[ids.t_evaluations_ptr + i] == expected_t_evals[i]
+      %}
+
+      let (b_current_frame: felt*) = alloc();
+      let (b_next_frame: felt*) = alloc();
+  """
+  +
+  generate_public_inputs(public_inputs)
+      +
+  """
+    // Trace
+  """
+  +
+    { 
+      var lno = 0;
+      var s = "";
+      for inp in b_trace do 
+        s = s + "    assert b_current_frame["+lno.str+"] = " + inp + ";\n";
+        ++lno;
+      done
+      return s;
+    } ()
+
+  +
+  """
+      let b_frame = EvaluationFrame("""+(main_trace_width * 2uz).str +""", b_current_frame, """+(main_trace_width * 2uz).str+""", next_frame);
+
+      let (b_evaluations: felt*) = alloc();
+      local b_evaluations_ptr: felt* = b_evaluations;
+      evaluate_boundary_0(b_frame, b_evaluations, """
+  + 
+    #{
+      var s = "";
+      for i in 0uz ..< pub_data.len do
+        if i != 0uz perform s = s + ", ";
+        s = s + pub_data.i.0;
+      done
+      return s;
+    }
+  +
+  """);
+
+      %{
+          expected_b_evals = """+py_bevals+"""
+          print("Boundary Evaluations")
+          for i in range("""+(total_bconstraints).str+"""):
+              print(i, memory[ids.b_evaluations_ptr + i])
+              assert memory[ids.b_evaluations_ptr + i] == expected_b_evals[i]
+      %}
+
+  """
+  +
+    generate_t_coeffs(t_coeffs_a, t_coeffs_b)
+  +
+  """
+      // FROM PROVER
+      let x = """ + x + """;
+      let trace_length = """+ trace_length.str + """;
+      let trace_domain_generator = """ + trace_domain_generator + """;
+
+      // MERGE TRANSITION
+      let main_transition_constraints_target_degree = """ + main_transition_constraints_target_degree + """;
+
+      let t_combined = merge_transitions_0(  
+        trace_length,  
+        main_transition_constraints_target_degree,
+        coeffs_transition_a, coeffs_transition_b, 
+        t_evaluations, 
+        x, 
+        trace_domain_generator
+      );
+      %{
+        print(ids.t_combined)
+        assert ids.t_combined == """ + t_combined.str + """ 
+      %}
+  """
+  +
+    generate_b_coeffs(b_coeffs_a, b_coeffs_b)
+  +
+  """
+      // MERGE BOUNDARY 
+      let blowup_factor = """ + blowup_factor.str + """;
+      let npub_steps = """ + b_nsteps.str + """;
+
+      let b_combined = merge_boundary_0(
+        trace_length,
+        blowup_factor, 
+        coeffs_boundary_a, coeffs_boundary_b, b_evaluations,  
+        trace_domain_generator, npub_steps, x
+      ); 
+      %{
+        print("b_combined = ", ids.b_combined)
+        print("Expected 4219772168637362433")
+      %}
+      return ();
+  }
+  """;
+
+  return output;
+}
+
