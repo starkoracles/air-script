@@ -6,6 +6,8 @@ gen parse_wlog(log_filename: string) {
   var lines = split (text, "\n");
   var vlines = varray lines;
 
+  println$ "";
+  println$ "RAW WINTERFELL LOG";
   var counter = 0;
   for line in vlines do
     println$ counter.str + ":  " + line;
@@ -19,7 +21,7 @@ gen parse_wlog(log_filename: string) {
   regdef narr = "[" numberz? "]";
   regdef varr = "[" vector (", " vector)* "]";
 
-  println$ "\nPARSE\n";
+  println$ "\nPARSED LOG\n";
 
   //0
   var lno = 0;
@@ -305,7 +307,7 @@ gen parse_wlog(log_filename: string) {
 
   var b_expected_evals = varray (rev(b_expected_evals_list));
 
-  println$ "WLOG PARSE COMPLETE OK";
+  println$ "\nWLOG PARSE COMPLETE OK\n";
 
   //println$ "Boundary trace row " + b_trace.str;
   //println$ "Boundary expected evals " + b_expected_evals.str;
@@ -314,6 +316,7 @@ gen parse_wlog(log_filename: string) {
   py_bevals += "]";
   //println$ "Boundary expected evals (as python) " + py_bevals;
 
+  println$ "\nDECODE TRANSITION COEFFS\n";
   var t_coeffs = (main_t_coeffs.[1 to -1],",").split;
   //println$ "SPLIT COEFFS = " + coeffs.str;
   var n_t_coeffs = t_coeffs.len / 2uz;
@@ -331,6 +334,7 @@ gen parse_wlog(log_filename: string) {
     endmatch;
   done
 
+  println$ "\nDECODE BOUNDARY COEFFS\n";
   var b_coeffs = (main_b_coeffs.[1 to -1],",").split;
   //println$ "SPLIT COEFFS = " + coeffs.str;
   var n_b_coeffs = b_coeffs.len / 2uz;
@@ -347,6 +351,7 @@ gen parse_wlog(log_filename: string) {
     | None => println$ "PARSE FAIL TRANSITION COEFFS";
     endmatch;
   done
+  println$ "\nPARSING COMPLETE\n";
   return
     b_trace,
     t_coeffs_a,
@@ -370,6 +375,7 @@ gen parse_wlog(log_filename: string) {
     b_nsteps.1.size,
     main_transition_constraints_target_degree,
     t_combined,
+    "4219772168637362433", //  b_combined,
 
     periodic_values,
     public_inputs

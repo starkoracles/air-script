@@ -110,7 +110,7 @@ impl CodeGenerator {
 
 
        let (sb,boundary_degrees, boundary_maxdeg, boundary_domain) = 
-         boundary::evaluate_boundaries(*w as usize, &self.graph,  &self.public_inputs, segment,&self.boundary_constraints[segment])
+         boundary::evaluate_boundaries(&self.graph,  &self.public_inputs, segment,&self.boundary_constraints[segment])
        ; 
        s = s + &sb;
 
@@ -138,7 +138,7 @@ impl CodeGenerator {
        s = s + "  let denominator = mul_g(denominator1, denominator2);\n";
        s = s + "  let z = div_g(numerator, denominator);\n";
        s = s + "  %{\n";
-       s = s + "    print('transition z ',ids.z)\n";
+       s = s + "    print('CAIRO transition z ',ids.z)\n";
        s = s + "  %}\n";
 
        let mut counter = 0;
@@ -196,7 +196,7 @@ impl CodeGenerator {
        s = s + "  let denominator = mul_g(denominator1, denominator2);\n";
        s = s + "  let z = div_g(numerator, denominator);\n";
        s = s + "  %{\n";
-       s = s + "    print('boundary z ',ids.z)\n";
+       s = s + "    print('CAIRO boundary z ',ids.z)\n";
        s = s + "  %}\n";
 
 
@@ -205,20 +205,29 @@ impl CodeGenerator {
        s = s + "  let divisor_degree = 1;\n";
        s = s + "  let target_degree =  composition_degree + divisor_degree;\n";
        s = s + "  let first_z = z - 1;\n\n";
+       s = s + " %{\n";
+       s = s + "     print('CAIRO divisor_first = ', ids.first_z)\n";
+       s = s + " %}\n";
 
-      s = s + "  let g = trace_domain_generator;\n\n";
+
+       s = s + "  let g = trace_domain_generator;\n\n";
        s = s + "  let gn = pow_g(g,npub_steps - 1);\n\n";
        s = s + "  let last_z = z - gn;\n";
+
+       s = s + " %{\n";
+       s = s + "     print('CAIRO divisor_last  = ', ids.last_z)\n";
+       s = s + " %}\n";
+ 
 
 // HACK test
 s = s + "let first_z = 3883415319251994390;\n";
 s = s + "let last_z =  3883696794228705047;\n";
        s = s + " %{\n";
-       s = s + "     print('divisor_first = ', ids.first_z)\n";
+       s = s + "     print('WINTEFELL HACK divisor_first = ', ids.first_z)\n";
        s = s + " %}\n";
 
-        s = s + " %{\n";
-       s = s + "     print('divisor_last = ', ids.last_z)\n";
+       s = s + " %{\n";
+       s = s + "     print('WINTEFELL HACK divisor_last = ', ids.last_z)\n";
        s = s + " %}\n";
  
        s = s + "\n";

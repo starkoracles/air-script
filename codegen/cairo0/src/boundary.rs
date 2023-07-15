@@ -1,8 +1,6 @@
 use ir::constraints::AlgebraicGraph;
 use ir::constraints::ConstraintRoot;
 use ir::constraints::ConstraintDomain;
-use ir::Value;
-use ir::constraints::Operation;
 use ir::PublicInput;
 
 
@@ -11,7 +9,6 @@ use showvalue::str;
 
 // Evaluate boundary constraints for one segment
 pub fn evaluate_boundaries(
-  trace_width: usize,
   graph: &AlgebraicGraph, 
   public_inputs: &Vec<PublicInput>,
   segment: usize, 
@@ -47,8 +44,6 @@ pub fn evaluate_boundaries(
   s = s + "// BOUNDARY CONSTRAINTS\n\n";
   let mut boundary_degrees: Vec<usize> = Vec::new();
   let mut boundary_domain: Vec<ConstraintDomain> = Vec::new();
-
-  let bc = &boundary_constraints;
 
   let mut print_constraint = |i:usize, w: &ConstraintRoot| -> String {
     //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";

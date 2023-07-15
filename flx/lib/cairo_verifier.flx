@@ -5,14 +5,14 @@ fun arr2list (x:string) {
 
 fun generate_public_inputs(public_inputs: string)
 { 
-  var s = "\n  // public inputs\n";
+  var s = "";
   var p = (public_inputs.[1 to -1], ",").split.varray;
   var ixno = 0;
   for pd in pub_data do
     var name = pd.0;
-    s = s + "\n    let ("+name+": felt*) = alloc();\n";
+    s = s + "\n      let ("+name+": felt*) = alloc();\n";
     for lno in 0..<pd.1 do
-      s = s + "    assert "+name+"["+lno.str+"] = " + p.ixno + ";\n";
+      s = s + "      assert "+name+"["+lno.str+"] = " + p.ixno + ";\n";
       ++ixno;
     done
   done
@@ -21,10 +21,10 @@ fun generate_public_inputs(public_inputs: string)
 
 fun generate_coeffs(cairo_name: string, coeffs: varray[string])
 {
-  var s = "    let (" + cairo_name + ": felt*) = alloc();\n";
+  var s = "\n      let (" + cairo_name + ": felt*) = alloc();\n";
   var counter = 0;
   for x in coeffs do
-    s = s + "    assert " + cairo_name + " ["+counter.str+"] = " + x + ";\n";
+    s = s + "      assert " + cairo_name + " ["+counter.str+"] = " + x + ";\n";
     ++counter;
   done
   return s;
@@ -51,6 +51,34 @@ fun generate_t_coeffs(t_coeffs_a: varray[string], t_coeffs_b: varray[string])
   generate_coeffs("coeffs_transition_b", t_coeffs_b)
 ;
 
+fun generate_pub_data_arglist(pub_data: varray[string * int])
+{
+  var s = "";
+  for i in 0uz ..< pub_data.len do
+    if i != 0uz perform s = s + ", ";
+    s = s + pub_data.i.0;
+  done
+  return s;
+}
+
+fun generate_main_evaluation_frame(main_trace_current, main_trace_next) =>
+"""
+      let (current_frame: felt*) = alloc();
+      let (next_frame: felt*) = alloc();
+      %{
+          current_frame_ptr = ids.current_frame
+          for val in """ + main_trace_current + """:
+                 memory[current_frame_ptr] = val
+                 current_frame_ptr = current_frame_ptr + 1
+
+          next_frame_ptr = ids.next_frame
+          for next_val in """+main_trace_next+""":
+              memory[next_frame_ptr] = next_val
+              next_frame_ptr = next_frame_ptr + 1
+      %}
+""";
+
+
 fun gen_cairo_verifier(
   b_trace: varray[string],
   t_coeffs_a: varray[string],
@@ -74,6 +102,7 @@ fun gen_cairo_verifier(
   b_nsteps:size,
   main_transition_constraints_target_degree: string,
   t_combined: string,
+  b_combined: string,
 
   periodic_values: string, // FIXME
   public_inputs: string // FIXME
@@ -83,7 +112,7 @@ fun gen_cairo_verifier(
 )
 {
   open LowResTime;
-  var tod = #time_t.gmtime.asctime;
+  var tod = #time_t.gmtime.asctime; // time of day for stamp
 
 
   // GENERATE CAIRO VERIFIER
@@ -101,26 +130,22 @@ fun gen_cairo_verifier(
   @external
   func test_transition_constraints{range_check_ptr}() {
       alloc_locals;
+
+    // PERIODIC VALUES
+
       let (periodic: felt*) = alloc();
   """
   +
   generate_periodic_values(periodic_values)
-     
   +
   """
-      let (current_frame: felt*) = alloc();
-      let (next_frame: felt*) = alloc();
-      %{
-          current_frame_ptr = ids.current_frame
-          for val in """ + main_trace_current + """:
-                 memory[current_frame_ptr] = val
-                 current_frame_ptr = current_frame_ptr + 1
-
-          next_frame_ptr = ids.next_frame
-          for next_val in """+main_trace_next+""":
-              memory[next_frame_ptr] = next_val
-              next_frame_ptr = next_frame_ptr + 1
-      %}
+    // MAIN TRANSITION EVALUATION FRAME 
+  """
+  +
+  generate_main_evaluation_frame(main_trace_current, main_trace_next)
+  +
+  """
+    // MAIN TRANSITION EVALUATION
 
       let (t_evaluations: felt*) = alloc();
       local t_evaluations_ptr: felt* = t_evaluations;
@@ -130,8 +155,9 @@ fun gen_cairo_verifier(
       %{
           expected_t_evals = """t_evaluations1+"""
           print("Transition Evaluations")
+          print(" IDX", "%20s" % "CAIRO", "%20s" % "WINTERFELL")
           for i in range("""+main_trace_width.str+"""):
-              print(i, memory[ids.t_evaluations_ptr + i])
+              print("%4i" % i, "%20i" % memory[ids.t_evaluations_ptr + i], "%20s" % expected_t_evals[i])
               assert memory[ids.t_evaluations_ptr + i] == expected_t_evals[i]
       %}
 
@@ -139,17 +165,21 @@ fun gen_cairo_verifier(
       let (b_next_frame: felt*) = alloc();
   """
   +
-  generate_public_inputs(public_inputs)
-      +
   """
-    // Trace
+    // PUBLIC INPUTS
+  """
+  +
+  generate_public_inputs(public_inputs)
+  +
+  """
+    // TRACE
   """
   +
     { 
       var lno = 0;
-      var s = "";
+      var s = "\n";
       for inp in b_trace do 
-        s = s + "    assert b_current_frame["+lno.str+"] = " + inp + ";\n";
+        s = s + "      assert b_current_frame["+lno.str+"] = " + inp + ";\n";
         ++lno;
       done
       return s;
@@ -157,42 +187,43 @@ fun gen_cairo_verifier(
 
   +
   """
+    // BOUNARY EVALUATION
+
       let b_frame = EvaluationFrame("""+(main_trace_width * 2uz).str +""", b_current_frame, """+(main_trace_width * 2uz).str+""", next_frame);
 
       let (b_evaluations: felt*) = alloc();
       local b_evaluations_ptr: felt* = b_evaluations;
       evaluate_boundary_0(b_frame, b_evaluations, """
   + 
-    #{
-      var s = "";
-      for i in 0uz ..< pub_data.len do
-        if i != 0uz perform s = s + ", ";
-        s = s + pub_data.i.0;
-      done
-      return s;
-    }
+  generate_pub_data_arglist pub_data
   +
   """);
 
       %{
           expected_b_evals = """+py_bevals+"""
           print("Boundary Evaluations")
+          print(" IDX", "%20s" % "CAIRO", "%20s" % "WINTERFELL")
           for i in range("""+(total_bconstraints).str+"""):
-              print(i, memory[ids.b_evaluations_ptr + i])
+              print("%4i" % i, "%20i" % memory[ids.b_evaluations_ptr + i], "%20i" % expected_b_evals[i])
               assert memory[ids.b_evaluations_ptr + i] == expected_b_evals[i]
       %}
 
   """
   +
+  """
+    // TRANSITION COEFFS
+  """
+  +
     generate_t_coeffs(t_coeffs_a, t_coeffs_b)
   +
   """
-      // FROM PROVER
+    // FROM PROVER
       let x = """ + x + """;
       let trace_length = """+ trace_length.str + """;
       let trace_domain_generator = """ + trace_domain_generator + """;
 
-      // MERGE TRANSITION
+    // MERGE TRANSITION
+
       let main_transition_constraints_target_degree = """ + main_transition_constraints_target_degree + """;
 
       let t_combined = merge_transitions_0(  
@@ -204,15 +235,21 @@ fun gen_cairo_verifier(
         trace_domain_generator
       );
       %{
-        print(ids.t_combined)
-        assert ids.t_combined == """ + t_combined.str + """ 
+          print("CAIRO      t_combined", ids.t_combined)
+          print("WINTERFELL t_combined", """+ t_combined + """)
+          assert ids.t_combined == """ + t_combined + """ 
       %}
+  """
+  +
+  """
+    // BOUNDARY COEFFS
   """
   +
     generate_b_coeffs(b_coeffs_a, b_coeffs_b)
   +
   """
-      // MERGE BOUNDARY 
+    // MERGE BOUNDARY 
+
       let blowup_factor = """ + blowup_factor.str + """;
       let npub_steps = """ + b_nsteps.str + """;
 
@@ -223,8 +260,9 @@ fun gen_cairo_verifier(
         trace_domain_generator, npub_steps, x
       ); 
       %{
-        print("b_combined = ", ids.b_combined)
-        print("Expected 4219772168637362433")
+          print("CAIRO      b_combined",ids.b_combined)
+          print("WINTERFELL b_combined","""+ b_combined + """)
+          assert ids.b_combined == """ + b_combined + """ 
       %}
       return ();
   }
