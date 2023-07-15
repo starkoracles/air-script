@@ -353,32 +353,32 @@ gen parse_wlog(log_filename: string) {
   done
   println$ "\nPARSING COMPLETE\n";
   return
-    b_trace,
-    t_coeffs_a,
-    t_coeffs_b,
-    b_coeffs_a,
-    b_coeffs_b,
+    b_trace,                 // PROVER: Evaluation Frame for boundary (first, last)
+    t_coeffs_a,              // PROVER combination coefss 
+    t_coeffs_b,              // ""
+    b_coeffs_a,              // ""
+    b_coeffs_b,              // ""
 
-    main_trace_current,
-    main_trace_next,
-    main_trace_width,
+    main_trace_current,      // PROVER: Evaluation Frame for main
+    main_trace_next,         // ""
+    main_trace_width,        // AIR
 
-    t_evaluations1,
-    py_bevals,
-    total_bconstraints.size,
+    t_evaluations1,          // CHECK main transition eval
+    py_bevals,               // CHECK boundary transtion eval
+    total_bconstraints.size, // AIR
 
-    x,
-    trace_length.size,
-    trace_domain_generator,
+    x,                       // PROVER OOD evaluation point
+    trace_length.size,       // PROVER main trace length
+    trace_domain_generator,  // PROVER OOD domain generator
 
-    blowup_factor.size,
-    b_nsteps.1.size,
-    main_transition_constraints_target_degree,
-    t_combined,
-    "4219772168637362433", //  b_combined,
+    blowup_factor.size,      // PROVER?? chosen blowup
+    b_nsteps.1.size,         // PROVER?? steps in Shamir reduction
+    main_transition_constraints_target_degree, // PROVER?? 
+    t_combined,              // CHECK main transition combine
+    "4219772168637362433",   //  b_combined, CHECK boundary combine
 
-    periodic_values,
-    public_inputs
+    periodic_values,         // AIR
+    public_inputs            // PROVER
   ;
 }
 
