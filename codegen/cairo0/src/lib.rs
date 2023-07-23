@@ -187,45 +187,25 @@ impl CodeGenerator {
 
        s = s + "  // Evaluate divisor\n";
        s = s + "  let g = trace_domain_generator;\n";
-       s = s + "  let numerator = pow_g(x, trace_length);\n";
-       s = s + "  let numerator = numerator - 1;\n";
-       s = s + "  let denominator1 = pow_g(g, trace_length - 1);\n";
-       s = s + "  let denominator1 = sub_g(x, denominator1);\n";
-       s = s + "  let denominator2 = pow_g(g, trace_length - 2);\n";
-       s = s + "  let denominator2 = sub_g(x, denominator2);\n";
-       s = s + "  let denominator = mul_g(denominator1, denominator2);\n";
-       s = s + "  let z = div_g(numerator, denominator);\n";
-       s = s + "  %{\n";
-       s = s + "    print('CAIRO boundary z ',ids.z)\n";
-       s = s + "  %}\n";
-
 
        s = s + "  let composition_degree = trace_length * blowup_factor - 1;\n";
        s = s + "  let trace_poly_degree = trace_length  - 1;\n";
        s = s + "  let divisor_degree = 1;\n";
        s = s + "  let target_degree =  composition_degree + divisor_degree;\n";
-       s = s + "  let first_z = z - 1;\n\n";
-       s = s + " %{\n";
-       s = s + "     print('CAIRO divisor_first = ', ids.first_z)\n";
-       s = s + " %}\n";
-
-
-       s = s + "  let g = trace_domain_generator;\n\n";
-       s = s + "  let gn = pow_g(g,npub_steps - 1);\n\n";
-       s = s + "  let last_z = z - gn;\n";
-
-       s = s + " %{\n";
-       s = s + "     print('CAIRO divisor_last  = ', ids.last_z)\n";
-       s = s + " %}\n";
  
 
-// HACK test
-s = s + "let first_z = 3883415319251994390;\n";
-s = s + "let last_z =  3883696794228705047;\n";
-       s = s + " %{\n";
-       s = s + "     print('WINTEFELL HACK divisor_first = ', ids.first_z)\n";
-       s = s + " %}\n";
+       s = s + "  // Evaluate divisor\n";
+       s = s + "  let first_z = sub_g(x, 1);\n";
 
+       s = s + "  let v1 = sub_g(trace_length, 1);\n";
+       s = s + "  let v2 = pow_g(g, v1);\n";
+       s = s + "  let last_z = sub_g(x, v2);\n"; // (x - g^(trace_length-1))
+       s = s + "  %{\n";
+       s = s + "    print('CAIRO DIVISORS (simple)',ids.first_z, ids.last_z)\n";
+       s = s + "  %}\n";
+
+    
+s = s + "let last_z =  3883696794228705047;\n";
        s = s + " %{\n";
        s = s + "     print('WINTEFELL HACK divisor_last = ', ids.last_z)\n";
        s = s + " %}\n";

@@ -208,39 +208,19 @@ func merge_boundary_0{range_check_ptr}(
   alloc_locals;
   // Evaluate divisor
   let g = trace_domain_generator;
-  let numerator = pow_g(x, trace_length);
-  let numerator = numerator - 1;
-  let denominator1 = pow_g(g, trace_length - 1);
-  let denominator1 = sub_g(x, denominator1);
-  let denominator2 = pow_g(g, trace_length - 2);
-  let denominator2 = sub_g(x, denominator2);
-  let denominator = mul_g(denominator1, denominator2);
-  let z = div_g(numerator, denominator);
-  %{
-    print('CAIRO boundary z ',ids.z)
-  %}
   let composition_degree = trace_length * blowup_factor - 1;
   let trace_poly_degree = trace_length  - 1;
   let divisor_degree = 1;
   let target_degree =  composition_degree + divisor_degree;
-  let first_z = z - 1;
-
- %{
-     print('CAIRO divisor_first = ', ids.first_z)
- %}
-  let g = trace_domain_generator;
-
-  let gn = pow_g(g,npub_steps - 1);
-
-  let last_z = z - gn;
- %{
-     print('CAIRO divisor_last  = ', ids.last_z)
- %}
-let first_z = 3883415319251994390;
+  // Evaluate divisor
+  let first_z = sub_g(x, 1);
+  let v1 = sub_g(trace_length, 1);
+  let v2 = pow_g(g, v1);
+  let last_z = sub_g(x, v2);
+  %{
+    print('CAIRO DIVISORS (simple)',ids.first_z, ids.last_z)
+  %}
 let last_z =  3883696794228705047;
- %{
-     print('WINTEFELL HACK divisor_first = ', ids.first_z)
- %}
  %{
      print('WINTEFELL HACK divisor_last = ', ids.last_z)
  %}
