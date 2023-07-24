@@ -197,7 +197,7 @@ impl CodeGenerator {
        s = s + "  // Evaluate divisor\n";
        s = s + "  let first_z = sub_g(x, 1);\n";
 
-       s = s + "  let v1 = sub_g(trace_length, 1);\n";
+       s = s + "  let v1 = sub_g(trace_length, 2);\n";
        s = s + "  let v2 = pow_g(g, v1);\n";
        s = s + "  let last_z = sub_g(x, v2);\n"; // (x - g^(trace_length-1))
        s = s + "  %{\n";
@@ -205,10 +205,10 @@ impl CodeGenerator {
        s = s + "  %}\n";
 
     
-s = s + "let last_z =  3883696794228705047;\n";
-       s = s + " %{\n";
-       s = s + "     print('WINTEFELL HACK divisor_last = ', ids.last_z)\n";
-       s = s + " %}\n";
+       //s = s + "let last_z =  3883696794228705047;\n";
+       //s = s + " %{\n";
+       //s = s + "     print('WINTEFELL HACK divisor_last = ', ids.last_z)\n";
+       //s = s + " %}\n";
  
        s = s + "\n";
        s = s + "  local first_sum_0 = 0;\n";

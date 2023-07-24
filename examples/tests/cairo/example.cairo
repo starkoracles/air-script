@@ -214,16 +214,12 @@ func merge_boundary_0{range_check_ptr}(
   let target_degree =  composition_degree + divisor_degree;
   // Evaluate divisor
   let first_z = sub_g(x, 1);
-  let v1 = sub_g(trace_length, 1);
+  let v1 = sub_g(trace_length, 2);
   let v2 = pow_g(g, v1);
   let last_z = sub_g(x, v2);
   %{
     print('CAIRO DIVISORS (simple)',ids.first_z, ids.last_z)
   %}
-let last_z =  3883696794228705047;
- %{
-     print('WINTEFELL HACK divisor_last = ', ids.last_z)
- %}
 
   local first_sum_0 = 0;
   local last_sum_0 = 0;
