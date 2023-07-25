@@ -1,3 +1,4 @@
+// TESTCASE: examples/example AT: Tue Jul 25 18:13:44 2023 UTC
 // Air name ExampleAir 1 segments
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy

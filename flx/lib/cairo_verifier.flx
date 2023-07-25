@@ -1,4 +1,3 @@
-include "web/low_res_time";
 fun arr2list (x:string) {
   return split(x.[1 to -1],",");
 }
@@ -111,14 +110,11 @@ fun gen_cairo_verifier(
   pub_data: varray[string * int]
 )
 {
-  open LowResTime;
-  var tod = #time_t.gmtime.asctime; // time of day for stamp
 
 
   // GENERATE CAIRO VERIFIER
-  var output = 
+  var output = stamp + 
   """
-  // GENERATED """ + tod + """
   %lang starknet
 
   from starkware.cairo.common.cairo_builtins import BitwiseBuiltin
