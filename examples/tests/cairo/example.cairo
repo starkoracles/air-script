@@ -1,4 +1,4 @@
-// TESTCASE: examples/exampleaux AT: Thu Jul 27 12:01:36 2023 UTC
+// TESTCASE: examples/exampleaux AT: Thu Jul 27 15:46:03 2023 UTC
 // Air name ExampleAirAux 2 segments
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
@@ -81,46 +81,47 @@ func evaluate_boundary_0{range_check_ptr} (
   stack_outputs: felt*,
 ) {
   alloc_locals;
-  let cur_0 = frame_0.current;
+  let first_0 = frame_0.current;
+  let last_0 = frame_0.next;
 // BOUNDARY CONSTRAINTS
 
-  // (cur_0[1] - stack_inputs[0])
-  let v1 = cur_0[1];
+  // (first_0[1] - stack_inputs[0])
+  let v1 = first_0[1];
   let v2 = stack_inputs[0];
   let v0 = sub_g(v1, v2);
   assert b_evaluations[0] = v0;
   // deg = 1, Domain: the first row
 
-  // (cur_0[2] - stack_inputs[1])
-  let v4 = cur_0[2];
+  // (first_0[2] - stack_inputs[1])
+  let v4 = first_0[2];
   let v5 = stack_inputs[1];
   let v3 = sub_g(v4, v5);
   assert b_evaluations[1] = v3;
   // deg = 1, Domain: the first row
 
-  // (cur_0[3] - stack_inputs[2])
-  let v7 = cur_0[3];
+  // (first_0[3] - stack_inputs[2])
+  let v7 = first_0[3];
   let v8 = stack_inputs[2];
   let v6 = sub_g(v7, v8);
   assert b_evaluations[2] = v6;
   // deg = 1, Domain: the first row
 
-  // (cur_0[1] - stack_outputs[0])
-  let v10 = cur_0[1];
+  // (last_0[1] - stack_outputs[0])
+  let v10 = last_0[1];
   let v11 = stack_outputs[0];
   let v9 = sub_g(v10, v11);
   assert b_evaluations[3] = v9;
   // deg = 1, Domain: the last row
 
-  // (cur_0[2] - stack_outputs[1])
-  let v13 = cur_0[2];
+  // (last_0[2] - stack_outputs[1])
+  let v13 = last_0[2];
   let v14 = stack_outputs[1];
   let v12 = sub_g(v13, v14);
   assert b_evaluations[4] = v12;
   // deg = 1, Domain: the last row
 
-  // (cur_0[3] - stack_outputs[2])
-  let v16 = cur_0[3];
+  // (last_0[3] - stack_outputs[2])
+  let v16 = last_0[3];
   let v17 = stack_outputs[2];
   let v15 = sub_g(v16, v17);
   assert b_evaluations[5] = v15;
@@ -311,8 +312,10 @@ func evaluate_boundary_1{range_check_ptr} (
   rand: felt*,
 ) {
   alloc_locals;
-  let cur_0 = frame_0.current;
-  let cur_1 = frame_1.current;
+  let first_0 = frame_0.current;
+  let last_0 = frame_0.next;
+  let first_1 = frame_1.current;
+  let last_1 = frame_1.next;
 // BOUNDARY CONSTRAINTS
 
 

@@ -53,10 +53,11 @@ pub fn evaluate_transitions(
   let vc = &integrity_constraints;
   //s = s + "\n  // Integrity   constraints (" + &(vc.len().to_string()) + ")\n  // ----------------\n";
   for (i, w) in vc.iter().enumerate() {
+    let domain = &w.domain; 
     //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
-    s = s + "  // " + &str(&graph,&w.index) + "\n";
+    s = s + "  // " + &str(&graph,&w.index,domain) + "\n";
     let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
-    let eval = &showvalue::ascairo(&graph,&r, &w.index, &mut counter);
+    let eval = &showvalue::ascairo(&graph,&r, &w.index, domain, &mut counter);
     s = s + &eval + "  assert t_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
     let degree = &graph.degree(&w.index).base();
     s = s + "  // deg = " + &degree.to_string() + "\n\n";

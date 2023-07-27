@@ -60,18 +60,18 @@ fun generate_pub_data_arglist(pub_data: varray[string * int])
   return s;
 }
 
-fun generate_main_evaluation_frame(main_trace_current, main_trace_next) =>
+fun generate_evaluation_frame(prefix:string, trace_current, trace_next) =>
 """
-      let (current_frame: felt*) = alloc();
-      let (next_frame: felt*) = alloc();
+      let ("""+prefix+"""_current_frame: felt*) = alloc();
+      let ("""+prefix+"""_next_frame: felt*) = alloc();
       %{
-          current_frame_ptr = ids.current_frame
-          for val in """ + main_trace_current + """:
+          current_frame_ptr = ids."""+prefix+"""_current_frame
+          for val in """ + trace_current + """:
                  memory[current_frame_ptr] = val
                  current_frame_ptr = current_frame_ptr + 1
 
-          next_frame_ptr = ids.next_frame
-          for next_val in """+main_trace_next+""":
+          next_frame_ptr = ids."""+prefix+"""_next_frame
+          for next_val in """+trace_next+""":
               memory[next_frame_ptr] = next_val
               next_frame_ptr = next_frame_ptr + 1
       %}
@@ -138,14 +138,14 @@ fun gen_cairo_verifier(
     // MAIN TRANSITION EVALUATION FRAME 
   """
   +
-  generate_main_evaluation_frame(main_trace_current, main_trace_next)
+  generate_evaluation_frame("main",main_trace_current, main_trace_next)
   +
   """
     // MAIN TRANSITION EVALUATION
 
       let (t_evaluations: felt*) = alloc();
       local t_evaluations_ptr: felt* = t_evaluations;
-      let main_frame = EvaluationFrame("""+main_trace_width.str+""", current_frame, """+main_trace_width.str+""", next_frame);
+      let main_frame = EvaluationFrame("""+main_trace_width.str+""", main_current_frame, """+main_trace_width.str+""", main_next_frame);
 
       evaluate_transition_0(main_frame, t_evaluations, periodic);
       %{
@@ -184,8 +184,10 @@ fun gen_cairo_verifier(
   +
   """
     // BOUNARY EVALUATION
+      let b_first_frame = b_current_frame;
+      let b_last_frame = b_current_frame + """ +main_trace_width.str + """;
 
-      let b_frame = EvaluationFrame("""+(main_trace_width * 2uz).str +""", b_current_frame, """+(main_trace_width * 2uz).str+""", next_frame);
+      let b_frame = EvaluationFrame("""+(main_trace_width).str +""", b_first_frame, """+(main_trace_width).str+""", b_last_frame);
 
       let (b_evaluations: felt*) = alloc();
       local b_evaluations_ptr: felt* = b_evaluations;
@@ -263,6 +265,31 @@ fun gen_cairo_verifier(
       return ();
   }
   """;
+
+  if false do
+  var aux_trace_width = 1; // HACK
+  output = output + 
+  """
+    // AUX TRANSITION EVALUATION
+
+      let (t_evaluations_1: felt*) = alloc();
+      local t_evaluations_ptr: felt* = t_evaluations_1;
+      let aux_frame = EvaluationFrame("""+aux_trace_width.str+""", aux_current_frame, """+aux_trace_width.str+""", aux_next_frame);
+
+      evaluate_transition_1(main_frame, aux_frame, t_evaluations, periodic);
+      %{
+          expected_t_evals = """t_evaluations1+"""
+          print("Transition Evaluations")
+          print(" IDX", "%20s" % "CAIRO", "%20s" % "WINTERFELL")
+          for i in range("""+aux_trace_width.str+"""):
+              print("%4i" % i, "%20i" % memory[ids.t_evaluations_ptr + i], "%20s" % expected_t_evals[i])
+              assert memory[ids.t_evaluations_ptr + i] == expected_t_evals[i]
+      %}
+
+      let (b_current_frame: felt*) = alloc();
+      let (b_next_frame: felt*) = alloc();
+  """;
+  done
 
   return output;
 }

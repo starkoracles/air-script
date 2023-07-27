@@ -55,7 +55,8 @@ pub fn evaluate_boundaries(
     +
       ") {\n" + 
       "  alloc_locals;\n" + 
-      "  let cur_0 = frame_0.current;\n" 
+      "  let first_0 = frame_0.current;\n"+ 
+      "  let last_0 = frame_0.next;\n"
       ;
     } else { // AUX
       s = s + 
@@ -74,8 +75,10 @@ pub fn evaluate_boundaries(
         "  rand: felt*,\n" + 
         ") {\n" + 
         "  alloc_locals;\n" + 
-        "  let cur_0 = frame_0.current;\n" + 
-        "  let cur_1 = frame_1.current;\n"  
+        "  let first_0 = frame_0.current;\n" + 
+        "  let last_0 = frame_0.next;\n" + 
+        "  let first_1 = frame_1.current;\n" + 
+        "  let last_1 = frame_1.next;\n"  
     };
         
   // boundary constraints
@@ -85,9 +88,10 @@ pub fn evaluate_boundaries(
 
   let mut print_constraint = |i:usize, w: &ConstraintRoot| -> String {
     //s = s + "    // #" + &i.to_string() + ": root node " + &w.index.0.to_string() + " Domain: " + &w.domain.to_string() + "\n";
-    let mut s = "  // ".to_string() + &str(&graph,&w.index) + "\n";
+    let domain = &w.domain;
+    let mut s = "  // ".to_string() + &str(&graph,&w.index,domain) + "\n";
     let r = "v".to_string() + &counter.to_string(); counter = counter + 1;
-    let eval = &showvalue::ascairo(&graph,&r, &w.index, &mut counter);
+    let eval = &showvalue::ascairo(&graph,&r, &w.index, domain, &mut counter);
     s = s.clone() + &eval + "  assert b_evaluations[" + &i.to_string() + "] = " + &r + ";\n";
     let degree = &graph.degree(&w.index).base();
     s = s.clone() + "  // deg = " + &degree.to_string() + ", Domain: " + &w.domain.to_string() + "\n\n";
