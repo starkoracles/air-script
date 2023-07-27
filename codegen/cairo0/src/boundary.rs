@@ -21,7 +21,7 @@ pub fn evaluate_boundaries(
 {
   let mut counter : i32 = 0;
   let mut s = "".to_string();
-
+/*
   s = s + 
     "func evaluate_boundary_" + &segment.to_string() + "{range_check_ptr} (\n" + 
     "  frame: EvaluationFrame,\n" + 
@@ -39,6 +39,44 @@ pub fn evaluate_boundaries(
     "  alloc_locals;\n" + 
     "  let cur = frame.current;\n"
   ;
+*/
+    if segment == 0 { // MAIN
+      s = s + 
+      "func evaluate_boundary_" + &segment.to_string() + "{range_check_ptr} (\n" + 
+      "  frame_0: EvaluationFrame,\n" + 
+      "  b_evaluations: felt*,\n" + 
+    &{ 
+      let mut s = "".to_string();
+      for (name,_size) in public_inputs.iter() {
+        s = s + "  " + name + ": felt*,\n";
+      }
+      s
+    }
+    +
+      ") {\n" + 
+      "  alloc_locals;\n" + 
+      "  let cur_0 = frame_0.current;\n" 
+      ;
+    } else { // AUX
+      s = s + 
+      "func evaluate_boundary_" + &segment.to_string() + "{range_check_ptr} (\n" + 
+        "  frame_0: EvaluationFrame,\n" + 
+        "  frame_1: EvaluationFrame,\n" + 
+        "  b_evaluations: felt*,\n" + 
+    &{ 
+      let mut s = "".to_string();
+      for (name,_size) in public_inputs.iter() {
+        s = s + "  " + name + ": felt*,\n";
+      }
+      s
+    }
+    +
+        "  rand: felt*,\n" + 
+        ") {\n" + 
+        "  alloc_locals;\n" + 
+        "  let cur_0 = frame_0.current;\n" + 
+        "  let cur_1 = frame_1.current;\n"  
+    };
         
   // boundary constraints
   s = s + "// BOUNDARY CONSTRAINTS\n\n";

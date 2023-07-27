@@ -9,12 +9,13 @@ pub fn showvalue(x: &Value) -> String {
     Value::BoundConstant(_) => "BoundConstant".to_string(),
     Value::InlineConstant(v) => v.to_string(),
     Value::TraceElement(ita) => {
+      let trace_segment = &ita.trace_segment().to_string();
       let offset = &ita.row_offset();
       let colidx = &ita.col_idx().to_string();
       if *offset == 0 {
-        "cur[".to_string() + &colidx + "]"
+        "cur_".to_string() +trace_segment+"["+ &colidx + "]"
       } else {
-        "nxt[".to_string() + &colidx + "]"
+        "nxt_".to_string()+trace_segment+"[" + &colidx + "]"
       }
     }
     Value::PeriodicColumn(index, _length) => "periodic_row[".to_string() + &index.to_string() + "]",

@@ -17,17 +17,35 @@ pub fn evaluate_transitions(
 {
   let mut counter : i32 = 0;
   let mut s = "".to_string();
-  s = s + 
-    "func evaluate_transition_" + &segment.to_string() + "{range_check_ptr} (\n" + 
-    "  frame: EvaluationFrame,\n" + 
-    "  t_evaluations: felt*,\n" + 
-    "  periodic_row: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
-    { if segment > 0 { "  rand: felt*,\n" } else { "" }} + 
-    ") {\n" + 
-    "  alloc_locals;\n" + 
-    "  let cur = frame.current;\n" + 
-    "  let nxt = frame.next;\n"
+    if segment == 0 { // MAIN
+      s = s + 
+      "func evaluate_transition_" + &segment.to_string() + "{range_check_ptr} (\n" + 
+      "  frame_0: EvaluationFrame,\n" + 
+      "  t_evaluations: felt*,\n" + 
+      "  periodic_row: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
+      ") {\n" + 
+      "  alloc_locals;\n" + 
+      "  let cur_0 = frame_0.current;\n" + 
+      "  let nxt_0 = frame_0.next;\n"
+      ;
+    } else { // AUX
+      s = s + 
+      "func evaluate_transition_" + &segment.to_string() + "{range_check_ptr} (\n" + 
+        "  frame_0: EvaluationFrame,\n" + 
+        "  frame_1: EvaluationFrame,\n" + 
+        "  t_evaluations: felt*,\n" + 
+        "  periodic_row: felt*,\n" +                       // periodic value vector FIXME: DESIGN FAULT!
+        "  rand: felt*,\n" + 
+        ") {\n" + 
+        "  alloc_locals;\n" + 
+        "  let cur_0 = frame_0.current;\n" + 
+        "  let nxt_0 = frame_0.next;\n" +
+        "  let cur_1 = frame_1.current;\n" + 
+        "  let nxt_1 = frame_1.next;\n"
+      ;
+    }
   ;
+
   let mut transition_degrees: Vec<usize> = Vec::new();
  
   // transition constraints
