@@ -149,7 +149,7 @@ let context = AirContext::new_multi_segment(
     num_aux_assertions,
     options,
 )
-.set_num_transition_exemptions(2);";
+.set_num_transition_exemptions(1);";
 
     new.line(context);
 

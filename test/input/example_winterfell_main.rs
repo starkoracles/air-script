@@ -10,6 +10,7 @@ use winter_prover::crypto::hashers::Blake3_192;
 use winter_prover::crypto::{DefaultRandomCoin, ElementHasher};
 use winter_prover::{Prover, Trace, TraceTable};
 use winter_verifier::verify;
+use log::info;
 
 mod example;
 
@@ -65,7 +66,7 @@ where
         // based on air, c = a * b and therefore all 1s
         let inputs = [Felt::ONE; 16];
         let mut outputs = [Felt::ONE; 16];
-        let last_step = trace.length() - 2; // why is this 2?
+        let last_step = trace.length() - 1; // why is this 2?
         outputs[0] = trace.get(1, last_step); // a
         outputs[1] = trace.get(2, last_step); // b
         outputs[2] = trace.get(3, last_step); // c

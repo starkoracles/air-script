@@ -127,18 +127,18 @@ impl CodeGenerator {
        s = s + "  alloc_locals;\n";
        s = s + "  local sum_0 = 0;\n";
 
-       s = s + "  // Evaluate divisor\n";
+       s = s + "  // Evaluate transition divisor\n";
+       s = s + "  // Airscript only handles boundary constraints on one row\n";
+       s = s + "  // So the number of 'exemptions' forming the divisor for transitions is always 1\n";
+       s = s + "\n";
        s = s + "  let g = trace_domain_generator;\n";
-       s = s + "  let numerator = pow_g(x, trace_length);\n";
-       s = s + "  let numerator = numerator - 1;\n";
-       s = s + "  let denominator1 = pow_g(g, trace_length - 1);\n";
-       s = s + "  let denominator1 = sub_g(x, denominator1);\n";
-       s = s + "  let denominator2 = pow_g(g, trace_length - 2);\n";
-       s = s + "  let denominator2 = sub_g(x, denominator2);\n";
-       s = s + "  let denominator = mul_g(denominator1, denominator2);\n";
+       s = s + "  let v1  = pow_g(x, trace_length);\n";
+       s = s + "  let numerator = v1 - 1;\n";
+       s = s + "  let v2 = pow_g(g, trace_length - 1);\n";
+       s = s + "  let denominator = sub_g(x, v2);\n";
        s = s + "  let z = div_g(numerator, denominator);\n";
        s = s + "  %{\n";
-       s = s + "    print('CAIRO transition z ',ids.z)\n";
+       s = s + "    print('CAIRO transition divisor z = ',ids.z)\n";
        s = s + "  %}\n";
 
        let mut counter = 0;
@@ -184,8 +184,12 @@ impl CodeGenerator {
        s = s + "  x: felt, \n";
        s = s + ") -> felt {\n";
        s = s + "  alloc_locals;\n";
+       s = s + "  %{\n";
+       s = s + "    print('CAIRO OOD evaluation x = ',ids.x)\n";
+       s = s + "  %}\n";
 
-       s = s + "  // Evaluate divisor\n";
+
+       s = s + "  // Evaluate boundary divisor\n";
        s = s + "  let g = trace_domain_generator;\n";
 
        s = s + "  let composition_degree = trace_length * blowup_factor - 1;\n";
@@ -197,11 +201,12 @@ impl CodeGenerator {
        s = s + "  // Evaluate divisor\n";
        s = s + "  let first_z = sub_g(x, 1);\n";
 
-       s = s + "  let v1 = sub_g(trace_length, 2);\n";
+       s = s + "  let v1 = sub_g(trace_length, 1);\n";
        s = s + "  let v2 = pow_g(g, v1);\n";
        s = s + "  let last_z = sub_g(x, v2);\n"; // (x - g^(trace_length-1))
        s = s + "  %{\n";
-       s = s + "    print('CAIRO DIVISORS (simple)',ids.first_z, ids.last_z)\n";
+       s = s + "    print('CAIRO DIVISOR first ',ids.first_z)\n";
+       s = s + "    print('CAIRO DIVISOR last  ',ids.last_z)\n";
        s = s + "  %}\n";
 
     

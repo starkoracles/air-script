@@ -17,11 +17,14 @@ var tod = #{
 
 fun / (x:string, y:string) => Filename::join (x,y);
 
-var input_path_f = "examples/example";
+var input_path_f = "test/input/example";
 begin 
   var f = System::argv 1;
   if f == "--help" do
-    println$ "Usage: flx tester.flx testfile/sans/extension" ;
+    println$ "Usage: flx tester.flx testdir/<testname>" ;
+    println$ "  input0: testdir/<testname>.air";
+    println$ "  input1: testdir/<testname>_winterfell_main.rs";
+    println$ "  transpile workspace: workspace/<testname>";
     System::exit 0;
   done
   if f != "" perform
@@ -31,20 +34,37 @@ end
 var stamp = "// TESTCASE: " + input_path_f + " AT: "  + tod ;
 
 proc stamp_file(f:string) {
-  println$ "STAMPING " + f;
+  println$ "[tester] STAMPING " + f;
   var inp = load f;
   println$ "File length " + inp.len.str;
   save(f,stamp + "\n" + inp);
 }
 
+var testname = Filename::basename input_path_f;
+var pathname_f = Filename::dirname input_path_f;
 
 // INPUTS
-var input_air_f = input_path_f + ".air";
-var winterfell_main_f = input_path_f + "_winterfell_main.rs"; // Hard coded top level Winterfell mainline for this test
+var input_air_f = pathname_f/(testname + ".air");
+var winterfell_main_f = pathname_f/(testname + "_winterfell_main.rs"); // Hard coded top level Winterfell mainline for this test
+
+println$ input_air_f,winterfell_main_f;
 
 // FIRST STAGE OUTPUTS
-var generated_cairo_f = input_path_f + ".cairo";
-var generated_rust_f = input_path_f + ".rs";
+var workspace_f = "test/workspace";
+var workdir = workspace_f/testname;
+C_hack::ignore(Directory::mkdir workdir);
+var copied_air_f = workdir/(testname + ".air");
+
+begin
+  var result = System::system$ "cp " +input_air_f + " "  +  copied_air_f;
+  println$ "[tester] COPIED " + input_air_f + " to " + copied_air_f + ", result="+result.str; 
+  if result != 0 perform System::exit result;
+  //stamp_file copied_air_f;
+end
+
+
+var generated_cairo_f = workdir/(testname + ".cairo");
+var generated_rust_f = workdir/(testname + ".rs");
 
 println$ "[tester] processing " + input_air_f + " and " + winterfell_main_f;
 println$ "[tester] generating " + generated_cairo_f + " and " + generated_rust_f
@@ -52,7 +72,7 @@ println$ "[tester] generating " + generated_cairo_f + " and " + generated_rust_f
 
 // FIXED Winterfell inputs
 var file_to_copy_winterfell_main_to_f = "examples/tests/winterfell/src/main.rs"; 
-var file_to_copy_generated_rust_to_f = "examples/tests/cairo/example.rs"; 
+var file_to_copy_generated_rust_to_f = "examples/tests/winterfell/src/example.rs"; 
 
 // FIXED Winterfell outputs
 var public_names_f = "example.public";
@@ -66,9 +86,9 @@ var file_to_copy_generated_cairo_to_f = "examples/tests/cairo/example.cairo"; //
 // ************************************************************* 
 // 1, RUN AIRSCRIPT 
 begin 
-  var result = System::system$ "cargo run --bin airc -- transpile -i " + input_air_f;
-  println$ "AIRSCIPT " + input_air_f " + result = " + result.str;
+  var result = System::system$ "cargo run --bin airc -- transpile -i " + copied_air_f ;
   if result != 0 perform System::exit result;
+  println$ "[tester] AIRSCIPT generated " + generated_rust_f + " and " + generated_cairo_f;
   stamp_file generated_cairo_f;
   stamp_file generated_rust_f;
 end
@@ -89,24 +109,24 @@ end
 // 2. COPY WINTERFELL VERIFIER (Rust code)
 begin
   var result = System::system$ "cp " + generated_rust_f + " "  +  file_to_copy_generated_rust_to_f;
-  println$ "COPIED example.rs" + result.str;
   if result != 0 perform System::exit result;
+  println$ "[tester] COPIED " + generated_rust_f + " to " + file_to_copy_generated_rust_to_f;
 end
 
 // ************************************************************* 
 // 3. COPY WINTERFELL HAND CODED MAIN (Rust code)
 begin
   var result = System::system$ "cp " +winterfell_main_f + " "  +  file_to_copy_winterfell_main_to_f;
-  println$ "winterfell main " + result.str;
   if result != 0 perform System::exit result;
+  println$ "[tester] COPIED " + winterfell_main_f + " to " + file_to_copy_winterfell_main_to_f;
 end
 
 // ************************************************************* 
 // 4. RUN WINTERFELL to get required data and results for comparison
 begin
   var result = System::system "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release";
-  println$ "WINTERFELL result = " + result.str;
   if result != 0 perform System::exit result;
+  println$ "[tester] WINTERFELL processing complete"; 
 end
 
 // ************************************************************* 
@@ -128,13 +148,15 @@ end
 // 7. COPY VERIFIER TO WHERE PROTOSTAR CAN FIND IT
 begin 
   var result = System::system ("cp " + generated_cairo_f + " " + file_to_copy_generated_cairo_to_f);
-  println$ "CP result = " + result.str;
+  if result != 0 perform System::exit result;
+  println$ "[tester] COPIED " + generated_cairo_f + " to " + file_to_copy_generated_cairo_to_f;
 end
 
 // ************************************************************* 
 // 8. RUN PROTOSTAR CAIRO VERIFIER TEST
 begin
   var result = System::system "protostar --no-color -p unit test";
+  if result != 0 perform System::exit result;
   println$ "PROTOSTAR result = " + result.str;
 end
 

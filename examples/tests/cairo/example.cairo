@@ -1,5 +1,5 @@
-// TESTCASE: examples/exampleaux AT: Thu Jul 27 15:46:03 2023 UTC
-// Air name ExampleAirAux 2 segments
+// TESTCASE: test/input/example AT: Sat Aug  5 13:38:55 2023 UTC
+// Air name ExampleAir 1 segments
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
 from math_goldilocks import add_g, sub_g, mul_g, pow_g, div_g
@@ -142,18 +142,18 @@ func merge_transitions_0{range_check_ptr}(
 ) -> felt {
   alloc_locals;
   local sum_0 = 0;
-  // Evaluate divisor
+  // Evaluate transition divisor
+  // Airscript only handles boundary constraints on one row
+  // So the number of 'exemptions' forming the divisor for transitions is always 1
+
   let g = trace_domain_generator;
-  let numerator = pow_g(x, trace_length);
-  let numerator = numerator - 1;
-  let denominator1 = pow_g(g, trace_length - 1);
-  let denominator1 = sub_g(x, denominator1);
-  let denominator2 = pow_g(g, trace_length - 2);
-  let denominator2 = sub_g(x, denominator2);
-  let denominator = mul_g(denominator1, denominator2);
+  let v1  = pow_g(x, trace_length);
+  let numerator = v1 - 1;
+  let v2 = pow_g(g, trace_length - 1);
+  let denominator = sub_g(x, v2);
   let z = div_g(numerator, denominator);
   %{
-    print('CAIRO transition z ',ids.z)
+    print('CAIRO transition divisor z = ',ids.z)
   %}
 
   // Merge degree 1
@@ -208,19 +208,23 @@ func merge_boundary_0{range_check_ptr}(
   x: felt, 
 ) -> felt {
   alloc_locals;
-  // Evaluate divisor
+  %{
+    print('CAIRO OOD evaluation x = ',ids.x)
+  %}
+  // Evaluate boundary divisor
   let g = trace_domain_generator;
   let composition_degree = trace_length * blowup_factor - 1;
   let trace_poly_degree = trace_length  - 1;
   let divisor_degree = 1;
-  let target_degree =  composition_degree + divisor_degree;
+  let target_degree =  composition_degree - divisor_degree;
   // Evaluate divisor
   let first_z = sub_g(x, 1);
-  let v1 = sub_g(trace_length, 2);
+  let v1 = sub_g(trace_length, 1);
   let v2 = pow_g(g, v1);
   let last_z = sub_g(x, v2);
   %{
-    print('CAIRO DIVISORS (simple)',ids.first_z, ids.last_z)
+    print('CAIRO DIVISOR first ',ids.first_z)
+    print('CAIRO DIVISOR last  ',ids.last_z)
   %}
 
   local first_sum_0 = 0;
@@ -269,128 +273,6 @@ func merge_boundary_0{range_check_ptr}(
 
   let first = div_g(first_sum_3,first_z);
   let last = div_g(last_sum_3,last_z);
-  return add_g(first,last);
-}
-
-// SEGMENT 1 size 1
-// ===============================================
-func evaluate_transition_1{range_check_ptr} (
-  frame_0: EvaluationFrame,
-  frame_1: EvaluationFrame,
-  t_evaluations: felt*,
-  periodic_row: felt*,
-  rand: felt*,
-) {
-  alloc_locals;
-  let cur_0 = frame_0.current;
-  let nxt_0 = frame_0.next;
-  let cur_1 = frame_1.current;
-  let nxt_1 = frame_1.next;
-// TRANSITION CONSTRAINTS
-
-  // (nxt_1[0] - (cur_1[0] * (cur_0[3] + rand[0])))
-  let v1 = nxt_1[0];
-  let v3 = cur_1[0];
-  let v5 = cur_0[3];
-  let v6 = rand[0];
-  let v4 = add_g(v5, v6);
-  let v2 = mul_g(v3, v4);
-  let v0 = sub_g(v1, v2);
-  assert t_evaluations[0] = v0;
-  // deg = 2
-
-
-  return ();
-}
-
-func evaluate_boundary_1{range_check_ptr} (
-  frame_0: EvaluationFrame,
-  frame_1: EvaluationFrame,
-  b_evaluations: felt*,
-  stack_inputs: felt*,
-  stack_outputs: felt*,
-  rand: felt*,
-) {
-  alloc_locals;
-  let first_0 = frame_0.current;
-  let last_0 = frame_0.next;
-  let first_1 = frame_1.current;
-  let last_1 = frame_1.next;
-// BOUNDARY CONSTRAINTS
-
-
-  return ();
-}
-// MERGE EVALUATIONS
-func merge_transitions_1{range_check_ptr}(
-  trace_length: felt,
-  target_degree: felt,
-  coeffs_transition_a: felt*,
-  coeffs_transition_b: felt*, 
-  t_evaluations: felt*, 
-  x: felt, 
-  trace_domain_generator: felt, 
-) -> felt {
-  alloc_locals;
-  local sum_0 = 0;
-  // Evaluate divisor
-  let g = trace_domain_generator;
-  let numerator = pow_g(x, trace_length);
-  let numerator = numerator - 1;
-  let denominator1 = pow_g(g, trace_length - 1);
-  let denominator1 = sub_g(x, denominator1);
-  let denominator2 = pow_g(g, trace_length - 2);
-  let denominator2 = sub_g(x, denominator2);
-  let denominator = mul_g(denominator1, denominator2);
-  let z = div_g(numerator, denominator);
-  %{
-    print('CAIRO transition z ',ids.z)
-  %}
-
-  // Merge degree 2
-  let evaluation_degree = 2 * (trace_length - 1);
-  let degree_adjustment = target_degree - evaluation_degree;
-  let xp = pow_g(x, degree_adjustment);
-
-  // Include transition 0
-  let v1 = mul_g(coeffs_transition_b[0],  xp);
-  let v2 = add_g(coeffs_transition_a[0], v1);
-  let v3 = mul_g(v2, t_evaluations[0]);
-  local sum_1 = add_g(sum_0,v3);
-
-  return div_g(sum_1,z);
-}
-func merge_boundary_1{range_check_ptr}(
-  trace_length: felt,
-  blowup_factor: felt,
-  coeffs_boundary_a: felt*,
-  coeffs_boundary_b: felt*, 
-  b_evaluations: felt*, 
-  trace_domain_generator: felt, 
-  npub_steps: felt, 
-  x: felt, 
-) -> felt {
-  alloc_locals;
-  // Evaluate divisor
-  let g = trace_domain_generator;
-  let composition_degree = trace_length * blowup_factor - 1;
-  let trace_poly_degree = trace_length  - 1;
-  let divisor_degree = 1;
-  let target_degree =  composition_degree + divisor_degree;
-  // Evaluate divisor
-  let first_z = sub_g(x, 1);
-  let v1 = sub_g(trace_length, 2);
-  let v2 = pow_g(g, v1);
-  let last_z = sub_g(x, v2);
-  %{
-    print('CAIRO DIVISORS (simple)',ids.first_z, ids.last_z)
-  %}
-
-  local first_sum_0 = 0;
-  local last_sum_0 = 0;
-
-  let first = div_g(first_sum_0,first_z);
-  let last = div_g(last_sum_0,last_z);
   return add_g(first,last);
 }
 
