@@ -1,4 +1,4 @@
-// TESTCASE: test/input/example AT: Sat Aug  5 13:38:55 2023 UTC
+// TESTCASE: test/input/example AT: Mon Aug  7 01:47:22 2023 UTC
 // Air name ExampleAir 1 segments
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
@@ -216,7 +216,7 @@ func merge_boundary_0{range_check_ptr}(
   let composition_degree = trace_length * blowup_factor - 1;
   let trace_poly_degree = trace_length  - 1;
   let divisor_degree = 1;
-  let target_degree =  composition_degree - divisor_degree;
+  let target_degree =  composition_degree + divisor_degree;
   // Evaluate divisor
   let first_z = sub_g(x, 1);
   let v1 = sub_g(trace_length, 1);
