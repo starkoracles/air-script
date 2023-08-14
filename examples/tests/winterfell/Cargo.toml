@@ -14,3 +14,4 @@ winter_prover = { package = "winter-prover", path = "winterfell-pkg/prover" }
 winter_utils = {package = "winter-utils", path = "winterfell-pkg/utils/core"}
 env_logger = "0.9.0"
 log = "0.4"
+csv = "1.1"

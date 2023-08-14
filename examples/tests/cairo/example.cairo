@@ -1,4 +1,4 @@
-// TESTCASE: test/input/example AT: Mon Aug  7 01:47:22 2023 UTC
+// TESTCASE: test/input/example AT: Mon Aug 14 16:14:30 2023 UTC
 // Air name ExampleAir 1 segments
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy

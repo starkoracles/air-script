@@ -44,16 +44,26 @@ var testname = Filename::basename input_path_f;
 var pathname_f = Filename::dirname input_path_f;
 
 // INPUTS
+var vm_name_f = pathname_f/(testname + "_vm.flx");
 var input_air_f = pathname_f/(testname + ".air");
 var winterfell_main_f = pathname_f/(testname + "_winterfell_main.rs"); // Hard coded top level Winterfell mainline for this test
+println$ input_air_f,winterfell_main_f, vm_name_f;
 
-println$ input_air_f,winterfell_main_f;
 
 // FIRST STAGE OUTPUTS
 var workspace_f = "test/workspace";
 var workdir = workspace_f/testname;
 C_hack::ignore(Directory::mkdir workdir);
 var copied_air_f = workdir/(testname + ".air");
+var trace_f = (workdir/testname + ".trace");
+
+begin
+  var result = System::system$ "flx " +vm_name_f + " >"  +  trace_f;
+  println$ "[tester] GENERATED TRACE " + trace_f + ", result="+result.str; 
+  if result != 0 perform System::exit result;
+  //stamp_file copied_air_f;
+end
+
 
 begin
   var result = System::system$ "cp " +input_air_f + " "  +  copied_air_f;
@@ -124,7 +134,7 @@ end
 // ************************************************************* 
 // 4. RUN WINTERFELL to get required data and results for comparison
 begin
-  var result = System::system "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release";
+  var result = System::system$ "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release -- " + trace_f;
   if result != 0 perform System::exit result;
   println$ "[tester] WINTERFELL processing complete"; 
 end

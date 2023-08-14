@@ -37,14 +37,18 @@ test/workspace/example/example.rs
 test/workspace/example/example.cairo
 ```
 
-The tester then runs a hacked version of Winterfell which has been patched
-to log two things:
+These files are given a time stamp at the top.
+
+The tester then runs a hacked version of Winterfell using
+the inputs:
+```
+test/input/example_winterfell_main.rs
+test/workspace/example/example.rs
+```
+which has been patched to log two things:
 
 1. the actual inputs the verifier receives from the prover
 2. some of the data calculated during verification.
-
-It then runs Winterfell, using the supplied mainline and the generated 
-prover and verifier, creating the log files needed for Cairo.
 
 The test script generates a cairo mainline to run the generated cairo verifier.
 For the main trace there are four functions:
