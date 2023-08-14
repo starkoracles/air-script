@@ -1,0 +1,19 @@
+struct row { s:int; a:int; b:int; c:int; }
+instance Str[row] {
+  fun str(next:row) =>
+    next.s.str + " " + next.a.str + " " + next.b.str + " " + next.c.str
+  ;
+}
+
+var init = row(1,1,1,1);
+println$ init.str;
+var trace : row^8;
+&trace.0 <- init;
+for i in 1uz..<8uz do
+  var next = row(1, i.int + 1, i.int + 2, (i.int + 1) * (i.int + 2)); 
+  &trace.i <- next;
+  println$ next.str;
+done
+
+   
+
