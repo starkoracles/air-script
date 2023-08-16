@@ -71,11 +71,11 @@ instance Str[row] {
   ;
 }
 
-fun read4(p:string) : uint64^4 {
+fun read3(p:string) : uint64^4 {
   regdef digit = charset "0123456789"; 
   regdef number = " "* group(digit+) " "*;
-  regdef r4 = number number number number "\n"*;
-  match Match(RE2 r4.render, p) with
+  regdef r3 = number number number "\n"*;
+  match Match(RE2 r3.render, p) with
   | Some v =>
     return v.0.uint64, v.1.uint64,v.2.uint64,v.3.uint64;
 
@@ -87,9 +87,9 @@ fun read4(p:string) : uint64^4 {
 var trace = fopen_output_text trace_f;
 
 var input_data = load(input_f);
-var s,a,b,c = read4(input_data);
+var a,b,c = read3(input_data);
+var s = 1u64;
 var init = row(s,a,b,c);
-println$ "INPUT=" + init.str;
 var xtrace = varray[row] trace_length.size;
 push_back(xtrace,init);
 writeln$ trace, init.str;
@@ -101,6 +101,6 @@ for i in 1 ..<trace_length do
 done
 fclose trace;
 
-save(output_f,next.str + '\n');
+save(output_f,next.a.str + " " next.b.str + " " + next.c.str + '\n');
   
 
