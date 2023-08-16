@@ -1,19 +1,107 @@
-struct row { s:int; a:int; b:int; c:int; }
+open Regdef;
+
+match System::args() with
+| Cons (h,t) =>
+   var args = t;
+| Empty => System::exit(1);
+endmatch;
+
+var trace_f = "";
+var input_f = "";
+var output_f = "";
+var trace_length = 0;
+
+begin
+  regdef digit_r = charset "0123456789";
+  regdef upper_r = charset "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  regdef lower_r = charset "abcdefghijklmnopqrstuvwxyz";
+  regdef letter_r = upper_r | lower_r;
+  regdef flead_r = letter_r;
+  regdef ftrail_r = letter_r | digit_r | "_";
+  regdef file_name_r  = flead_r ftrail_r* ("." ftrail_r+)?;
+
+
+  regdef file_key_r = group("trace_file") | group("input_file") | group("output_file");
+  regdef trace_length_key_r = "trace_length";
+
+  regdef cmd_line_switch_r = "--" 
+    (
+       file_key_r "=" group(file_name_r)
+       | group(trace_length_key_r) "=" group(digit_r+) 
+    )
+  ;
+
+  //println$ cmd_line_switch_r.render;
+
+  var cmd_re = RE2 cmd_line_switch_r.render;
+
+  for arg in args do
+    //println$ "ARG " + arg;
+    var r = Match(cmd_re, arg);
+    match r with
+    | Some (v) =>
+      var tfk,ifk,ofk,fn,tlk,tv = v.1,v.2,v.3,v.4,v.5,v.6;
+      if tfk != "" do trace_f = fn;
+      elif ifk != "" do input_f = fn;
+      elif ofk != "" do output_f = fn;
+      elif tlk != "" do trace_length = tv.int;
+      else System::exit(2);
+      done
+    | None =>
+       println$ "Invalid command line argument `" + arg+ "`";
+       System::exit(1);
+    endmatch; 
+  done
+  println$ "input_file="+input_f +", output_file="+output_f+", trace_file=" + trace_f + ", trace_length=" + trace_length.str;
+  if input_f == "" do
+    println$ "Missing input_file";
+  elif output_f == "" do
+    println$ "Missing output_file name";
+  elif trace_f == "" do
+    println$ "Missing trace_file name";
+  elif trace_length == 0 do
+    println$ "Missing trace_length value";
+  done
+
+end
+
+struct row { s:uint64; a:uint64; b:uint64; c:uint64; }
 instance Str[row] {
   fun str(next:row) =>
     next.s.str + " " + next.a.str + " " + next.b.str + " " + next.c.str
   ;
 }
 
-var init = row(1,1,1,1);
-println$ init.str;
-var trace : row^8;
-&trace.0 <- init;
-for i in 1uz..<8uz do
-  var next = row(1, i.int + 1, i.int + 2, (i.int + 1) * (i.int + 2)); 
-  &trace.i <- next;
-  println$ next.str;
-done
+fun read4(p:string) : uint64^4 {
+  regdef digit = charset "0123456789"; 
+  regdef number = " "* group(digit+) " "*;
+  regdef r4 = number number number number "\n"*;
+  match Match(RE2 r4.render, p) with
+  | Some v =>
+    return v.0.uint64, v.1.uint64,v.2.uint64,v.3.uint64;
 
-   
+  | None => 
+    println$ "Input file parse error, 4 numbers required";
+    System::exit(1);
+  endmatch;
+}
+var trace = fopen_output_text trace_f;
+
+var input_data = load(input_f);
+var s,a,b,c = read4(input_data);
+var init = row(s,a,b,c);
+println$ "INPUT=" + init.str;
+var xtrace = varray[row] trace_length.size;
+push_back(xtrace,init);
+println$ init.str;
+for i in 1 ..<trace_length do
+  var next = row(1u64, i.uint64 + 1u64, i.uint64 + 2u64, (i.uint64 + 1u64) * (i.uint64 + 2u64)); 
+  push_back(xtrace,next);
+  println$ next.str;
+  writeln$ trace,next.str;
+done
+fclose trace;
+
+save(output_f,next.str + '\n');
+  
 
