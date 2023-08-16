@@ -16,6 +16,62 @@ use std::env;
 
 mod example;
 
+fn parse_fast(value: &str) -> Felt {
+  let mut result = 0u64;
+  for b in value.bytes() {
+    if b >= 48  && b < 58 { 
+      result = 10u64 * result + ((b as u64) - 48u64);
+    }
+    else { panic!("Invalid character in trace table"); }
+  }
+  Felt::from(result)
+}
+
+fn parse_line(line: String) -> Vec::<Felt> {
+  let words = line.split(" ");
+  let mut vw = Vec::<Felt>::new();
+  for word in words.into_iter() {
+     if word != "" {
+       vw.push(parse_fast(&word));
+     }
+   } 
+   return vw;
+}
+
+fn parse_lines(table_data: String) -> Vec::<Vec::<Felt>> {
+  let lines = table_data.split("\n");
+  let mut vwords = Vec::<Vec::<Felt>>::new();
+  for line in lines.into_iter() {
+     if line != "" {
+       vwords.push(parse_line(line.to_string()));
+     }
+  }
+  return vwords;
+}
+
+fn load_file(f:&str) -> String {
+  let mut table_file = File::open (f).unwrap();
+  let mut table_data = String::new(); 
+  table_file.read_to_string(&mut table_data).unwrap();
+  return table_data;
+}
+
+fn get_public_values(input_f:&str, output_f:&str) -> PublicInputs {
+  let z = Felt::from(1 as u64);
+  let inputs = parse_line(load_file(input_f));
+  let mut input_a : [Felt;3] = [z,z,z];
+  for (i,v) in inputs.iter().enumerate() {
+    input_a[i]=*v; 
+  }
+  let outputs = parse_line(load_file(output_f));
+  let mut output_a : [Felt;3] = [z,z,z];
+  for (i,v) in outputs.iter().enumerate() {
+    output_a[i]=*v; 
+  }
+  PublicInputs::new(input_a, output_a)
+}
+
+
 pub struct ExampleProver<H: ElementHasher> {
     options: WinterProofOptions,
     _hasher: PhantomData<H>,
@@ -29,8 +85,9 @@ println!("RUNNNING WINTERFELL");
             _hasher: PhantomData,
         }
     }
+
     /// Builds an execution trace of the air
-    pub fn build_trace(&self, table_f: &str, inputs: &[Felt; 16]) -> TraceTable<Felt> {
+    pub fn build_trace(&self, table_f: &str) -> TraceTable<Felt> {
 
         fn parse_fast(value: &str) -> Felt {
           let mut result = 0u64;
@@ -42,32 +99,10 @@ println!("RUNNNING WINTERFELL");
           }
           Felt::from(result)
         }
-        fn parse_line(line: String) -> Vec::<Felt> {
-          let words = line.split(" ");
-          let mut vw = Vec::<Felt>::new();
-          for word in words.into_iter() {
-             if word != "" {
-               vw.push(parse_fast(&word));
-             }
-           } 
-           return vw;
-        }
-        fn parse_lines(table_data: String) -> Vec::<Vec::<Felt>> {
-          let lines = table_data.split("\n");
-          let mut vwords = Vec::<Vec::<Felt>>::new();
-          for line in lines.into_iter() {
-             if line != "" {
-               vwords.push(parse_line(line.to_string()));
-             }
-          }
-          return vwords;
-        }
 
-        let mut table_file = File::open (table_f).unwrap();
-        let mut table_data = String::new(); 
-        table_file.read_to_string(&mut table_data).unwrap();
+        let table_data = load_file(table_f);
 
-        println!("RAW TABLE {:?}",&mut table_data);
+        //println!("RAW TABLE {:?}",&mut table_data);
 
         let vwords = parse_lines(table_data); 
 
@@ -107,9 +142,12 @@ where
     type RandomCoin = DefaultRandomCoin<Self::HashFn>;
 
     fn get_pub_inputs(&self, trace: &Self::Trace) -> PublicInputs {
-        // based on air, c = a * b and therefore all 1s
-        let inputs = [Felt::ONE; 16];
-        let mut outputs = [Felt::ONE; 16];
+        let mut inputs = [Felt::ONE; 3];
+        inputs[0] = trace.get(1, 0); // a
+        inputs[1] = trace.get(2, 0); // b
+        inputs[2] = trace.get(3, 0); // c
+
+        let mut outputs = [Felt::ONE; 3];
         let last_step = trace.length() - 1; // why is this 2?
         outputs[0] = trace.get(1, last_step); // a
         outputs[1] = trace.get(2, last_step); // b
@@ -124,13 +162,16 @@ where
 
 fn main() {
     let args: Vec<String> = env::args().collect(); 
-    let trace_f = &args[1];
+    let input_f = &args[1];
+    let trace_f = &args[2];
+    let output_f = &args[3];
 
-    let inputs = [Felt::ONE; 16];
+
     let options = WinterProofOptions::new(27, 8, 16, FieldExtension::None, 8, 255);
     let prover = ExampleProver::<Blake3_192<Felt>>::new(options);
-    let trace = prover.build_trace(trace_f, &inputs);
+    let trace = prover.build_trace(trace_f);
     let pub_inputs = prover.get_pub_inputs(&trace);
+
     let proof = prover.prove(trace).unwrap();
     let example_log = File::create("example.wlog").unwrap();
 

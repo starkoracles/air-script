@@ -140,7 +140,9 @@ end
 // ************************************************************* 
 // 4. RUN WINTERFELL to get required data and results for comparison
 begin
-  var result = System::system$ "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release -- " + trace_f;
+  var result = System::system$ "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release -- " + 
+    input_f + " " + trace_f + " " + output_f
+  ;
   if result != 0 perform System::exit result;
   println$ "[tester] WINTERFELL processing complete"; 
 end
