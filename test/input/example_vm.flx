@@ -16,9 +16,8 @@ begin
   regdef upper_r = charset "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   regdef lower_r = charset "abcdefghijklmnopqrstuvwxyz";
   regdef letter_r = upper_r | lower_r;
-  regdef flead_r = letter_r;
-  regdef ftrail_r = letter_r | digit_r | "_";
-  regdef file_name_r  = flead_r ftrail_r* ("." ftrail_r+)?;
+  regdef fchar_r = letter_r | digit_r | "_" | "/" | ".";
+  regdef file_name_r  = fchar_r+;
 
 
   regdef file_key_r = group("trace_file") | group("input_file") | group("output_file");
@@ -93,12 +92,12 @@ var init = row(s,a,b,c);
 println$ "INPUT=" + init.str;
 var xtrace = varray[row] trace_length.size;
 push_back(xtrace,init);
-println$ init.str;
+writeln$ trace, init.str;
 for i in 1 ..<trace_length do
   var next = row(1u64, i.uint64 + 1u64, i.uint64 + 2u64, (i.uint64 + 1u64) * (i.uint64 + 2u64)); 
   push_back(xtrace,next);
   println$ next.str;
-  writeln$ trace,next.str;
+  writeln$ trace, next.str;
 done
 fclose trace;
 

@@ -31,56 +31,46 @@ println!("RUNNNING WINTERFELL");
     }
     /// Builds an execution trace of the air
     pub fn build_trace(&self, table_f: &str, inputs: &[Felt; 16]) -> TraceTable<Felt> {
-        fn parse_fast(value: &str) -> u64 {
-            let mut result = 0u64;
-            for b in value.bytes() {
-                if b >= 48  && b < 58 { 
-                    result = 10u64 * result + ((b as u64) - 48u64);
-                }
-                else { panic!("Invalid character in trace table"); }
-            }
-            result
-        }
-/*
-        let mut s = vec![Felt::ONE];
-        let mut a = vec![inputs[0]];
-        let mut b = vec![inputs[1]];
-        let mut c = vec![inputs[2]];
 
-        for i in 1..sequence_length {
-            let new_a = Felt::from((i + 1) as u64);
-            let new_b = Felt::from((i + 2) as u64);
-            s.push(Felt::ONE); // selector stays the same
-            a.push(new_a);
-            b.push(new_b);
-            c.push(new_a * new_b); // c is a * b
+        fn parse_fast(value: &str) -> Felt {
+          let mut result = 0u64;
+          for b in value.bytes() {
+              if b >= 48  && b < 58 { 
+                  result = 10u64 * result + ((b as u64) - 48u64);
+              }
+              else { panic!("Invalid character in trace table"); }
+          }
+          Felt::from(result)
         }
-        let tab = vec![s,a,b,c];
-        println!("TRACE TABLE {:?}", tab);
-*/
+        fn parse_line(line: String) -> Vec::<Felt> {
+          let words = line.split(" ");
+          let mut vw = Vec::<Felt>::new();
+          for word in words.into_iter() {
+             if word != "" {
+               vw.push(parse_fast(&word));
+             }
+           } 
+           return vw;
+        }
+        fn parse_lines(table_data: String) -> Vec::<Vec::<Felt>> {
+          let lines = table_data.split("\n");
+          let mut vwords = Vec::<Vec::<Felt>>::new();
+          for line in lines.into_iter() {
+             if line != "" {
+               vwords.push(parse_line(line.to_string()));
+             }
+          }
+          return vwords;
+        }
+
         let mut table_file = File::open (table_f).unwrap();
         let mut table_data = String::new(); 
         table_file.read_to_string(&mut table_data).unwrap();
+
         println!("RAW TABLE {:?}",&mut table_data);
 
-        let lines = table_data.split("\n");
-        let mut vwords = Vec::<Vec::<u64>>::new();
-        for (lno, line) in lines.into_iter().enumerate() {
-           //println!("{:?} -- {:?}", lno, line);
-           if line != "" {
-             let mut vs = Vec::<String>::new();
-             let words = line.split(" ");
-             let mut vw = Vec::<u64>::new(); 
-             for word in words.into_iter() {
-               if word != "" {
-                let k = parse_fast(&word);
-                 vw.push(parse_fast(&word));
-                 //println!("Add word: `{:?}`", k);
-               }
-             } 
-             vwords.push(vw);
-           }
-        }
+        let vwords = parse_lines(table_data); 
+
         let nrows = vwords.len();
         let ncols = vwords[0].len();
 

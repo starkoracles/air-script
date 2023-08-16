@@ -45,6 +45,7 @@ var pathname_f = Filename::dirname input_path_f;
 
 // INPUTS
 var vm_name_f = pathname_f/(testname + "_vm.flx");
+var input_f = pathname_f/(testname + ".public_input");
 var input_air_f = pathname_f/(testname + ".air");
 var winterfell_main_f = pathname_f/(testname + "_winterfell_main.rs"); // Hard coded top level Winterfell mainline for this test
 println$ input_air_f,winterfell_main_f, vm_name_f;
@@ -56,9 +57,14 @@ var workdir = workspace_f/testname;
 C_hack::ignore(Directory::mkdir workdir);
 var copied_air_f = workdir/(testname + ".air");
 var trace_f = (workdir/testname + ".trace");
+var output_f = (workdir/testname + ".public_output");
 
 begin
-  var result = System::system$ "flx " +vm_name_f + " >"  +  trace_f;
+  var result = System::system$ 
+    "flx " +vm_name_f + " --input_file=" + input_f + 
+     " --trace_file=" + trace_f + " --output_file="+output_f +
+     " --trace_length=8"
+  ;
   println$ "[tester] GENERATED TRACE " + trace_f + ", result="+result.str; 
   if result != 0 perform System::exit result;
   //stamp_file copied_air_f;
