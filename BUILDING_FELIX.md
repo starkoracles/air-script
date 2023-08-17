@@ -41,7 +41,7 @@ changes, so edit the copies in the override directory instead.
 cd to directory `<parent>`
 Clone the Felix repo and cd into it and follow the steps
 ```
-https://github.com/felix-lang/felix.git)https://github.com/felix-lang/felix.git
+git clone https://github.com/felix-lang/felix.git
 cd felix
 mkdir ~/.felix
 mkdir ~/.felix/config
@@ -99,7 +99,67 @@ should run from the repo. Now
 cd ..
 flx felix/hello.flx
 ```
-should also work. 
+should also work. You can also run all the regression tests
+```
+make test
+```
+however tests that already passed (which should be all of them!)
+do not get re-run. There are several hundred regression tests!
+
+# How it works
+Felix works "like" Python in the sense you can just execute text files
+```
+flx filename
+```
+Behind the scenes the compiler translates the script into C++,
+then runs the C++ compiler to get a binary, and then executes the binary.
+
+The first time you do this is a tad slow, but Felix does a lot of caching
+and has fully automated dependency checking at many levels.
+
+The second time you do this, if nothing changed, the binary is run directly.
+When you change some script, that file is reparsed, but none of the libraries
+will need to be reparsed. In addition, if you don't change the standard
+library, a cached version of the IR for that library is used.
+
+Still, startup time for Felix can be slower than Python, the Felix compiler
+does a LOT of work, and then you have to C++ compiler the output.
+
+On the other hand generated executable binaries ARE LIGHTNING FAST.
+The compiler does some advanced high level optimisations, and then
+the C++ compiler does a swag of low level optimisations.
+
+## Dependencies
+Unlike Rust, Felix does not use manifests.
+Instead there is a single central database of files:
+```
+build/release/host/config/*.fpc
+```
+An fpc file typically tells Felix the location of a required library.
+The library is specified directly in the use Felix code, but using
+the name of the fpc file. In other words dependencies are specified
+1. Internally NOT with an external manifest
+2. Abstractly NOT with actual component names
+3. The configuration directory tells where the library is on your system
+
+This is very much easier to use than ANY other system including `cargo` based
+package management, and walks all over all other build systems because,
+well, there is no build system. All the build control is fully automated
+and cached in the `flx` tool. And it applies to C++ as well as Felix.
+
+If you want to use a third party library all you have to do (after install
+it of course) is provide the meta-data required to find and use it in an
+`fpc` file.
+
+The main downside compared to `cargo` is that there is no easy way to isolate
+a particular project's dependencies, and in particular pin a particular
+version. In fact you CAN do this by setting up a separate configuration
+database and then pointing the FLX_CONFIG_DIR environment variable at it,
+or use one of several other methods, but doing this is definitely harder
+than cargo manifests. On the other hand, the config directory specifies
+a system wide standard which ensures interoperability (at the expense
+of isolation).
+
 
 
 
