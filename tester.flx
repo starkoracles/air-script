@@ -1,3 +1,10 @@
+open Regdef;
+regdef digit_r = charset "0123456789";
+regdef upper_r = charset "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+regdef lower_r = charset "abcdefghijklmnopqrstuvwxyz";
+regdef letter_r = upper_r | lower_r;
+regdef alphanum_r = letter_r | digit_r;
+
 // Temporarily, test script in top level of repo
 
 // To print the time in generated files
@@ -171,9 +178,25 @@ proc run_subtest (input_f:string, trace_f:string, output_f:string) {
 // run the VM for different trace lengths
 // and for different public inputs
 
-for input_set in ("inp1","inp2","inp3") do
+regdef test_input_r =  perl(testname) ".public_input_" group(alphanum_r+);
+var test_input_re = RE2 test_input_r.render;
+var infiles = FileSystem::regfilesin(pathname_f,test_input_re);
+
+println$ "[tester] INPUT FILES " + infiles.str; 
+var cases = Empty[string];
+for file in infiles do
+  match Match(test_input_re, file) with
+  | None => println$ "Unexpected failure finding test case data names"; System::exit(1);
+  | Some v => cases = Snoc(cases, v.1);
+  endmatch;
+done
+cases = rev cases;
+
+println$ "[tester] INPUT CASES " + cases.str;
+
+for input_set in cases do
   var input_f = pathname_f/(testname + ".public_input_"+input_set);
-  for trace_length in (4,8,16,32) do
+  for trace_length in (8,16,32) do
     var trace_f = (workdir/testname + ".trace_" + input_set + "_tl_"+trace_length.str);
     var output_f = (workdir/testname + ".public_output_"+input_set+"_tl_"+trace_length.str);
     begin
@@ -187,7 +210,7 @@ for input_set in ("inp1","inp2","inp3") do
       println$ "[tester] GENERATED TRACE " + trace_f + ", result="+result.str; 
       if result != 0 perform System::exit result;
     end
+    run_subtest(input_f,trace_f,output_f);
   done
-  run_subtest(input_f,trace_f,output_f);
 done
 

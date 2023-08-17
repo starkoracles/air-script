@@ -30,7 +30,10 @@ begin
     )
   ;
 
-  //println$ cmd_line_switch_r.render;
+  println$ "[vm] example -- start";
+  for arg in args perform
+    print$ arg + " ";
+  println "";
 
   var cmd_re = RE2 cmd_line_switch_r.render;
 
@@ -64,6 +67,11 @@ begin
 
 end
 
+println$ "[vm] input_f      = " + input_f;
+println$ "[vm] trace_f      = " + trace_f;
+println$ "[vm] output_f     = " + output_f;
+println$ "[vm] trace_length = " + trace_length.str;
+
 struct row { s:uint64; a:uint64; b:uint64; c:uint64; }
 instance Str[row] {
   fun str(next:row) =>
@@ -77,7 +85,7 @@ fun read3(p:string) : uint64^3 {
   regdef r3 = number number number "\n"*;
   match Match(RE2 r3.render, p) with
   | Some v =>
-    return v.0.uint64, v.1.uint64,v.2.uint64,v.3.uint64;
+    return v.1.uint64, v.2.uint64,v.3.uint64;
 
   | None => 
     println$ "Input file parse error, 3 numbers required";
@@ -93,10 +101,12 @@ var init = row(s,a,b,c);
 var xtrace = varray[row] trace_length.size;
 push_back(xtrace,init);
 writeln$ trace, init.str;
+println$ "[vm] trace";
+println$ "[vm] " + init.str;
 for i in 1 ..<trace_length do
   var next = row(1u64, i.uint64 + 1u64, i.uint64 + 2u64, (i.uint64 + 1u64) * (i.uint64 + 2u64)); 
   push_back(xtrace,next);
-  println$ next.str;
+  println$ "[vm] " + next.str;
   writeln$ trace, next.str;
 done
 fclose trace;
