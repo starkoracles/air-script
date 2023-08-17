@@ -1,68 +1,43 @@
 # Test procedure
 
+The latest machinery is as follows:
 
-Inputs live in the directory
-```
-test/input
-```
-Two are required:
-```
-test/input/example.air
-test/input/example_winterfell_main.rs
-```
+1. Implement a VM. Currently it must be a Felix script, this will change shortly to a shell script.
+2. The vm file must be named `test/input/<vmname>_vm.flx`
+4. Implement an airscript specification.
+5. The airscript file must be named `test/input/<vmname>.air`
+6. Implement a Winterfell mainline,
+7. The mainline must be named `test/input/<vmname>_winterfell_main.rs`
+8. Implement one or more public input specifications.
+9. The inputs files must be named `test/input/<vmname>.public_input_<input_case>`
+10. Run ```flx tester.flx test/input/<vmname>```
 
-The `example.air` file contains the airscript AIR specification.
+# VM specs
+1. The VM must accept exactly 4 command line arguments.
+2. These are
+    1. `--input_file=<input_file_name>`
+    2. `--trace_file=<trace_file_name>`
+    3. `--output_file=<output_file_name>`
+    4. `--trace_length=<trace_length>`
 
-The `example_winterfell_main.rs` is the mainline for the Winterfell
-package.
+4. It must read the input file and use that to initialise the VM.
+5. It must write the trace to the trace file.
+6. It must write the result to the output file.
+7. It should run exactly the specified number of steps.
 
-This file must create a main trace matrix and public inputs
-and call the Wintefell prover and verifier.
+The format for the input and output files is a single line of space separated integers
+The format for the trace is a sequence of lines of space separated integers
 
-The test script must be called by
-```
-flx tester.flx test/input/example
-``` 
-Note the `.air` suffix must be omitted.
-The layout will be changed soon to allow the same air constraints to
-be applied to multiple test cases, by allowing more than one
-winterfell mainline.
+# Winterfell mainline specs
+Sorry this thing is a mess, please just copy and edit an existing case.
+I hope to eliminate the need to hand write this file.
 
-The test script runs `airscript` to generate both the Winterfell prover and verifier
-and the Cairo verifier. The original inputs and output are put in `test/workspace/example`,
-where `example` is the basename of the input air file.
-``` 
-test/workspace/example/example.air	
-test/workspace/example/example.rs
-test/workspace/example/example.cairo
-```
-
-These files are given a time stamp at the top.
-
-The tester then runs a hacked version of Winterfell using
-the inputs:
-```
-test/input/example_winterfell_main.rs
-test/workspace/example/example.rs
-```
-which has been patched to log two things:
-
-1. the actual inputs the verifier receives from the prover
-2. some of the data calculated during verification.
-
-The test script generates a cairo mainline to run the generated cairo verifier.
-For the main trace there are four functions:
-
-1. evaluate transiction constraints
-2. combine transition constraints
-3. evaluate boundary constraints 
-4. combine boundary constraints
-
-The test script generated cairo mainline supplies the data the Winterfell prover
-sent to its verifier, and adds Python assertions to check the 4 functions above
-produce the same results as the Winterfell verifier.
-
-The test script then runs the cairo cairo mainline with the airscript generated
-cairo functions under protostar version 0.10.0.
-`
+# Prerequisites
+1. You have to have Felix up and running. 
+2. It requires Ocaml 4.12, Python 3.x, and recent g++ or clang supporting -std=c++17.
+3. You need recent version of Rust
+4. You need Protostar version: 0.10.0 it will NOT work with newer version at present.
+5. You need cairo compiler, I use these:
+6. Cairo-lang version: 0.11.0.1
+7. Cairo 1 compiler version: 1.0.0a6
 
