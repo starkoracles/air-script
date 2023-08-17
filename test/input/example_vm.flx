@@ -71,7 +71,7 @@ instance Str[row] {
   ;
 }
 
-fun read3(p:string) : uint64^4 {
+fun read3(p:string) : uint64^3 {
   regdef digit = charset "0123456789"; 
   regdef number = " "* group(digit+) " "*;
   regdef r3 = number number number "\n"*;
@@ -80,7 +80,7 @@ fun read3(p:string) : uint64^4 {
     return v.0.uint64, v.1.uint64,v.2.uint64,v.3.uint64;
 
   | None => 
-    println$ "Input file parse error, 4 numbers required";
+    println$ "Input file parse error, 3 numbers required";
     System::exit(1);
   endmatch;
 }

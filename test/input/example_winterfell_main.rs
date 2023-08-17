@@ -89,23 +89,8 @@ println!("RUNNNING WINTERFELL");
     /// Builds an execution trace of the air
     pub fn build_trace(&self, table_f: &str) -> TraceTable<Felt> {
 
-        fn parse_fast(value: &str) -> Felt {
-          let mut result = 0u64;
-          for b in value.bytes() {
-              if b >= 48  && b < 58 { 
-                  result = 10u64 * result + ((b as u64) - 48u64);
-              }
-              else { panic!("Invalid character in trace table"); }
-          }
-          Felt::from(result)
-        }
-
         let table_data = load_file(table_f);
-
-        //println!("RAW TABLE {:?}",&mut table_data);
-
         let vwords = parse_lines(table_data); 
-
         let nrows = vwords.len();
         let ncols = vwords[0].len();
 
@@ -125,9 +110,7 @@ println!("RUNNNING WINTERFELL");
           }
           tab.push(col);
         }
-   
         TraceTable::init(tab)
-
     }
 }
 

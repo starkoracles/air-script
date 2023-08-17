@@ -1,7 +1,7 @@
 
 // PARSE PUBLIC INPUT NAMES FILE
 
-gen parse_winterfell_public(filename) {
+gen parse_winterfell_public(filename) : varray[string * int] {
   open Regdef;
 
   var pubs = (load(filename),"\n").split.varray;

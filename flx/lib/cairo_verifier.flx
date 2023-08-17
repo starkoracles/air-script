@@ -2,7 +2,7 @@ fun arr2list (x:string) {
   return split(x.[1 to -1],",");
 }
 
-fun generate_public_inputs(public_inputs: string)
+fun generate_public_inputs(public_inputs: string, pub_data: varray[string * int])
 { 
   var s = "";
   var p = (public_inputs.[1 to -1], ",").split.varray;
@@ -165,7 +165,7 @@ fun gen_cairo_verifier(
     // PUBLIC INPUTS
   """
   +
-  generate_public_inputs(public_inputs)
+  generate_public_inputs(public_inputs, pub_data)
   +
   """
     // TRACE

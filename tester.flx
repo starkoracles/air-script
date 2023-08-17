@@ -45,30 +45,14 @@ var pathname_f = Filename::dirname input_path_f;
 
 // INPUTS
 var vm_name_f = pathname_f/(testname + "_vm.flx");
-var input_f = pathname_f/(testname + ".public_input");
 var input_air_f = pathname_f/(testname + ".air");
 var winterfell_main_f = pathname_f/(testname + "_winterfell_main.rs"); // Hard coded top level Winterfell mainline for this test
-println$ input_air_f,winterfell_main_f, vm_name_f;
-
 
 // FIRST STAGE OUTPUTS
 var workspace_f = "test/workspace";
 var workdir = workspace_f/testname;
 C_hack::ignore(Directory::mkdir workdir);
 var copied_air_f = workdir/(testname + ".air");
-var trace_f = (workdir/testname + ".trace");
-var output_f = (workdir/testname + ".public_output");
-
-begin
-  var result = System::system$ 
-    "flx " +vm_name_f + " --input_file=" + input_f + 
-     " --trace_file=" + trace_f + " --output_file="+output_f +
-     " --trace_length=8"
-  ;
-  println$ "[tester] GENERATED TRACE " + trace_f + ", result="+result.str; 
-  if result != 0 perform System::exit result;
-  //stamp_file copied_air_f;
-end
 
 
 begin
@@ -77,6 +61,7 @@ begin
   if result != 0 perform System::exit result;
   //stamp_file copied_air_f;
 end
+
 
 
 var generated_cairo_f = workdir/(testname + ".cairo");
@@ -109,18 +94,6 @@ begin
   stamp_file generated_rust_f;
 end
 
-
-// ************************************************************* 
-// BUILD AND RUN HACKED WINTERFELL FOR THIS AIR
-// We do this for two reasons:
-//
-// 1. To get data out of the prover the verifier needs
-// 2. To get values out of the Rust verifier to check our cairo one
-//
-// The hacked Winterfell contains log outputs which we subsequently
-// parse to get the requisite values.
-
-
 // ************************************************************* 
 // 2. COPY WINTERFELL VERIFIER (Rust code)
 begin
@@ -137,45 +110,84 @@ begin
   println$ "[tester] COPIED " + winterfell_main_f + " to " + file_to_copy_winterfell_main_to_f;
 end
 
-// ************************************************************* 
-// 4. RUN WINTERFELL to get required data and results for comparison
-begin
-  var result = System::system$ "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release -- " + 
-    input_f + " " + trace_f + " " + output_f
-  ;
-  if result != 0 perform System::exit result;
-  println$ "[tester] WINTERFELL processing complete"; 
-end
 
-// ************************************************************* 
-// 5a. PARSE PUBLIC INPUT NAMES FILE
-var pub_data = parse_winterfell_public(public_names_f); 
+proc run_subtest (input_f:string, trace_f:string, output_f:string) {
 
-// 5b. PARSE WINTERFELL GENERATED LOG FILE 
-var parse_data = parse_wlog(log_filename_f);
+  // ************************************************************* 
+  // BUILD AND RUN HACKED WINTERFELL FOR THIS AIR
+  // We do this for two reasons:
+  //
+  // 1. To get data out of the prover the verifier needs
+  // 2. To get values out of the Rust verifier to check our cairo one
+  //
+  // The hacked Winterfell contains log outputs which we subsequently
+  // parse to get the requisite values.
 
 
-// ************************************************************* 
-// 6. GENERATE THE CAIRO VERIFIER and SAVE IT
-begin
-  var output = gen_cairo_verifier parse_data pub_data;
-  save(protostar_test_filename_f, output);
-end
+  // ************************************************************* 
+  // 4. RUN WINTERFELL to get required data and results for comparison
+  begin
+    var result = System::system$ "RUSTFLAGS=-Awarnings cargo run --bin winterfell --release -- " + 
+      input_f + " " + trace_f + " " + output_f
+    ;
+    if result != 0 perform System::exit result;
+    println$ "[tester] WINTERFELL processing complete"; 
+  end
 
-// ************************************************************* 
-// 7. COPY VERIFIER TO WHERE PROTOSTAR CAN FIND IT
-begin 
-  var result = System::system ("cp " + generated_cairo_f + " " + file_to_copy_generated_cairo_to_f);
-  if result != 0 perform System::exit result;
-  println$ "[tester] COPIED " + generated_cairo_f + " to " + file_to_copy_generated_cairo_to_f;
-end
+  // ************************************************************* 
+  // 5a. PARSE PUBLIC INPUT NAMES FILE
+  var pub_data = parse_winterfell_public(public_names_f); 
 
-// ************************************************************* 
-// 8. RUN PROTOSTAR CAIRO VERIFIER TEST
-begin
-  var result = System::system "protostar --no-color -p unit test";
-  if result != 0 perform System::exit result;
-  println$ "PROTOSTAR result = " + result.str;
-end
+  // 5b. PARSE WINTERFELL GENERATED LOG FILE 
+  var parse_data = parse_wlog(log_filename_f);
 
+
+  // ************************************************************* 
+  // 6. GENERATE THE CAIRO VERIFIER and SAVE IT
+  begin
+    var output = gen_cairo_verifier parse_data pub_data;
+    save(protostar_test_filename_f, output);
+  end
+
+  // ************************************************************* 
+  // 7. COPY VERIFIER TO WHERE PROTOSTAR CAN FIND IT
+  begin 
+    var result = System::system ("cp " + generated_cairo_f + " " + file_to_copy_generated_cairo_to_f);
+    if result != 0 perform System::exit result;
+    println$ "[tester] COPIED " + generated_cairo_f + " to " + file_to_copy_generated_cairo_to_f;
+  end
+
+  // ************************************************************* 
+  // 8. RUN PROTOSTAR CAIRO VERIFIER TEST
+  begin
+    var result = System::system "protostar --no-color -p unit test";
+    println$ "PROTOSTAR result = " + result.str;
+    //if result != 0 perform System::exit result;
+  end
+}
+
+// Main test loops
+//
+// run the VM for different trace lengths
+// and for different public inputs
+
+for input_set in ("inp1","inp2","inp3") do
+  var input_f = pathname_f/(testname + ".public_input_"+input_set);
+  for trace_length in (4,8,16,32) do
+    var trace_f = (workdir/testname + ".trace_" + input_set + "_tl_"+trace_length.str);
+    var output_f = (workdir/testname + ".public_output_"+input_set+"_tl_"+trace_length.str);
+    begin
+      println$ "Running VM " + vm_name_f + " for input " input_f + " trace_length " + trace_length.str;
+
+      var result = System::system$ 
+        "flx " +vm_name_f + " --input_file=" + input_f + 
+         " --trace_file=" + trace_f + " --output_file="+output_f +
+         " --trace_length=" + trace_length.str
+      ;
+      println$ "[tester] GENERATED TRACE " + trace_f + ", result="+result.str; 
+      if result != 0 perform System::exit result;
+    end
+  done
+  run_subtest(input_f,trace_f,output_f);
+done
 
