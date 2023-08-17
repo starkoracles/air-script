@@ -1,5 +1,5 @@
-// TESTCASE: test/input/example AT: Thu Aug 17 05:29:02 2023 UTC
-// Air name ExampleAir 1 segments
+// TESTCASE: test/input/fib AT: Thu Aug 17 16:16:15 2023 UTC
+// Air name FibAir 1 segments
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
 from math_goldilocks import add_g, sub_g, mul_g, pow_g, div_g
@@ -11,7 +11,7 @@ struct EvaluationFrame {
   next: felt*,
 }
 
-// SEGMENT 0 size 4
+// SEGMENT 0 size 2
 // ===============================================
 func evaluate_transition_0{range_check_ptr} (
   frame_0: EvaluationFrame,
@@ -23,52 +23,25 @@ func evaluate_transition_0{range_check_ptr} (
   let nxt_0 = frame_0.next;
 // TRANSITION CONSTRAINTS
 
-  // ((cur_0[0] ^ 2) - cur_0[0])
-  let v3 = cur_0[0];
-  let v1 = pow_g(v3, 2);
-  let v2 = cur_0[0];
+  // ((nxt_0[0] - cur_0[1]) - 0)
+  let v3 = nxt_0[0];
+  let v4 = cur_0[1];
+  let v1 = sub_g(v3, v4);
+  let v2 = 0;
   let v0 = sub_g(v1, v2);
   assert t_evaluations[0] = v0;
-  // deg = 2
-
-  // ((periodic_row[0] * (nxt_0[0] - cur_0[0])) - 0)
-  let v7 = periodic_row[0];
-  let v9 = nxt_0[0];
-  let v10 = cur_0[0];
-  let v8 = sub_g(v9, v10);
-  let v5 = mul_g(v7, v8);
-  let v6 = 0;
-  let v4 = sub_g(v5, v6);
-  assert t_evaluations[1] = v4;
   // deg = 1
 
-  // (((1 - cur_0[0]) * ((cur_0[3] - cur_0[1]) - cur_0[2])) - 0)
-  let v16 = 1;
-  let v17 = cur_0[0];
-  let v14 = sub_g(v16, v17);
-  let v20 = cur_0[3];
-  let v21 = cur_0[1];
-  let v18 = sub_g(v20, v21);
-  let v19 = cur_0[2];
-  let v15 = sub_g(v18, v19);
-  let v12 = mul_g(v14, v15);
-  let v13 = 0;
-  let v11 = sub_g(v12, v13);
-  assert t_evaluations[2] = v11;
-  // deg = 2
-
-  // ((cur_0[0] * (cur_0[3] - (cur_0[1] * cur_0[2]))) - 0)
-  let v25 = cur_0[0];
-  let v27 = cur_0[3];
-  let v29 = cur_0[1];
-  let v30 = cur_0[2];
-  let v28 = mul_g(v29, v30);
-  let v26 = sub_g(v27, v28);
-  let v23 = mul_g(v25, v26);
-  let v24 = 0;
-  let v22 = sub_g(v23, v24);
-  assert t_evaluations[3] = v22;
-  // deg = 3
+  // (((nxt_0[1] - cur_0[0]) - cur_0[1]) - 0)
+  let v10 = nxt_0[1];
+  let v11 = cur_0[0];
+  let v8 = sub_g(v10, v11);
+  let v9 = cur_0[1];
+  let v6 = sub_g(v8, v9);
+  let v7 = 0;
+  let v5 = sub_g(v6, v7);
+  assert t_evaluations[1] = v5;
+  // deg = 1
 
 
   return ();
@@ -77,54 +50,40 @@ func evaluate_transition_0{range_check_ptr} (
 func evaluate_boundary_0{range_check_ptr} (
   frame_0: EvaluationFrame,
   b_evaluations: felt*,
-  stack_inputs: felt*,
-  stack_outputs: felt*,
+  fib_inputs: felt*,
+  fib_outputs: felt*,
 ) {
   alloc_locals;
   let first_0 = frame_0.current;
   let last_0 = frame_0.next;
 // BOUNDARY CONSTRAINTS
 
-  // (first_0[1] - stack_inputs[0])
-  let v1 = first_0[1];
-  let v2 = stack_inputs[0];
+  // (first_0[0] - fib_inputs[0])
+  let v1 = first_0[0];
+  let v2 = fib_inputs[0];
   let v0 = sub_g(v1, v2);
   assert b_evaluations[0] = v0;
   // deg = 1, Domain: the first row
 
-  // (first_0[2] - stack_inputs[1])
-  let v4 = first_0[2];
-  let v5 = stack_inputs[1];
+  // (first_0[1] - fib_inputs[1])
+  let v4 = first_0[1];
+  let v5 = fib_inputs[1];
   let v3 = sub_g(v4, v5);
   assert b_evaluations[1] = v3;
   // deg = 1, Domain: the first row
 
-  // (first_0[3] - stack_inputs[2])
-  let v7 = first_0[3];
-  let v8 = stack_inputs[2];
+  // (last_0[0] - fib_outputs[0])
+  let v7 = last_0[0];
+  let v8 = fib_outputs[0];
   let v6 = sub_g(v7, v8);
   assert b_evaluations[2] = v6;
-  // deg = 1, Domain: the first row
+  // deg = 1, Domain: the last row
 
-  // (last_0[1] - stack_outputs[0])
+  // (last_0[1] - fib_outputs[1])
   let v10 = last_0[1];
-  let v11 = stack_outputs[0];
+  let v11 = fib_outputs[1];
   let v9 = sub_g(v10, v11);
   assert b_evaluations[3] = v9;
-  // deg = 1, Domain: the last row
-
-  // (last_0[2] - stack_outputs[1])
-  let v13 = last_0[2];
-  let v14 = stack_outputs[1];
-  let v12 = sub_g(v13, v14);
-  assert b_evaluations[4] = v12;
-  // deg = 1, Domain: the last row
-
-  // (last_0[3] - stack_outputs[2])
-  let v16 = last_0[3];
-  let v17 = stack_outputs[2];
-  let v15 = sub_g(v16, v17);
-  assert b_evaluations[5] = v15;
   // deg = 1, Domain: the last row
 
 
@@ -161,41 +120,19 @@ func merge_transitions_0{range_check_ptr}(
   let degree_adjustment = target_degree - evaluation_degree;
   let xp = pow_g(x, degree_adjustment);
 
-  // Include transition 1
-  let v1 = mul_g(coeffs_transition_b[1],  xp);
-  let v2 = add_g(coeffs_transition_a[1], v1);
-  let v3 = mul_g(v2, t_evaluations[1]);
-  local sum_1 = add_g(sum_0,v3);
-
-  // Merge degree 2
-  let evaluation_degree = 2 * (trace_length - 1);
-  let degree_adjustment = target_degree - evaluation_degree;
-  let xp = pow_g(x, degree_adjustment);
-
   // Include transition 0
   let v1 = mul_g(coeffs_transition_b[0],  xp);
   let v2 = add_g(coeffs_transition_a[0], v1);
   let v3 = mul_g(v2, t_evaluations[0]);
+  local sum_1 = add_g(sum_0,v3);
+
+  // Include transition 1
+  let v1 = mul_g(coeffs_transition_b[1],  xp);
+  let v2 = add_g(coeffs_transition_a[1], v1);
+  let v3 = mul_g(v2, t_evaluations[1]);
   local sum_2 = add_g(sum_1,v3);
 
-  // Include transition 2
-  let v1 = mul_g(coeffs_transition_b[2],  xp);
-  let v2 = add_g(coeffs_transition_a[2], v1);
-  let v3 = mul_g(v2, t_evaluations[2]);
-  local sum_3 = add_g(sum_2,v3);
-
-  // Merge degree 3
-  let evaluation_degree = 3 * (trace_length - 1);
-  let degree_adjustment = target_degree - evaluation_degree;
-  let xp = pow_g(x, degree_adjustment);
-
-  // Include transition 3
-  let v1 = mul_g(coeffs_transition_b[3],  xp);
-  let v2 = add_g(coeffs_transition_a[3], v1);
-  let v3 = mul_g(v2, t_evaluations[3]);
-  local sum_4 = add_g(sum_3,v3);
-
-  return div_g(sum_4,z);
+  return div_g(sum_2,z);
 }
 func merge_boundary_0{range_check_ptr}(
   trace_length: felt,
@@ -251,28 +188,16 @@ func merge_boundary_0{range_check_ptr}(
   let v1 = mul_g(coeffs_boundary_b[2],  xp);
   let v2 = add_g(coeffs_boundary_a[2], v1);
   let v3 = mul_g(v2, b_evaluations[2]);
-  local first_sum_3 = add_g(first_sum_2,v3);
+  local last_sum_1 = add_g(last_sum_0,v3);
 
   // Include boundary 3
   let v1 = mul_g(coeffs_boundary_b[3],  xp);
   let v2 = add_g(coeffs_boundary_a[3], v1);
   let v3 = mul_g(v2, b_evaluations[3]);
-  local last_sum_1 = add_g(last_sum_0,v3);
-
-  // Include boundary 4
-  let v1 = mul_g(coeffs_boundary_b[4],  xp);
-  let v2 = add_g(coeffs_boundary_a[4], v1);
-  let v3 = mul_g(v2, b_evaluations[4]);
   local last_sum_2 = add_g(last_sum_1,v3);
 
-  // Include boundary 5
-  let v1 = mul_g(coeffs_boundary_b[5],  xp);
-  let v2 = add_g(coeffs_boundary_a[5], v1);
-  let v3 = mul_g(v2, b_evaluations[5]);
-  local last_sum_3 = add_g(last_sum_2,v3);
-
-  let first = div_g(first_sum_3,first_z);
-  let last = div_g(last_sum_3,last_z);
+  let first = div_g(first_sum_2,first_z);
+  let last = div_g(last_sum_2,last_z);
   return add_g(first,last);
 }
 

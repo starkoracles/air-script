@@ -76,45 +76,46 @@ println$ "[vm] trace_f      = " + trace_f;
 println$ "[vm] output_f     = " + output_f;
 println$ "[vm] trace_length = " + trace_length.str;
 
-struct row { s:uint64; a:uint64; b:uint64; c:uint64; }
+struct row { a:uint64; b:uint64; }
 instance Str[row] {
   fun str(next:row) =>
-    next.s.str + " " + next.a.str + " " + next.b.str + " " + next.c.str
+    next.a.str + " " + next.b.str
   ;
 }
 
-fun read3(p:string) : uint64^3 {
+fun read2(p:string) : uint64^3 {
   regdef digit = charset "0123456789"; 
   regdef number = " "* group(digit+) " "*;
-  regdef r3 = number number number "\n"*;
-  match Match(RE2 r3.render, p) with
+  regdef r2 = number number "\n"*;
+  match Match(RE2 r2.render, p) with
   | Some v =>
-    return v.1.uint64, v.2.uint64,v.3.uint64;
+    return v.1.uint64, v.2.uint64;
 
   | None => 
-    println$ "Input file parse error, 3 numbers required";
+    println$ "Input file parse error, 2 numbers required";
     System::exit(1);
   endmatch;
 }
 var trace = fopen_output_text trace_f;
 
 var input_data = load(input_f);
-var a,b,c = read3(input_data);
-var s = 1u64;
-var init = row(s,a,b,c);
+var a,b = read2(input_data);
+var init = row(a,b);
 var xtrace = varray[row] trace_length.size;
 push_back(xtrace,init);
 writeln$ trace, init.str;
 println$ "[vm] trace";
 println$ "[vm] " + init.str;
 for i in 1 ..<trace_length do
-  var next = row(1u64, i.uint64 + 1u64, i.uint64 + 2u64, (i.uint64 + 1u64) * (i.uint64 + 2u64)); 
+  var next = row(init.b, init.a + init.b); 
+  init = next;
   push_back(xtrace,next);
   println$ "[vm] " + next.str;
   writeln$ trace, next.str;
 done
 fclose trace;
 
-save(output_f,next.a.str + " " next.b.str + " " + next.c.str + '\n');
+save(output_f,next.a.str + " " next.b.str + '\n');
   
+
 
