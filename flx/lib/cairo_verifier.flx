@@ -1,5 +1,6 @@
 fun arr2list (x:string) {
-  return split(x.[1 to -1],",");
+  var y = x.[1 to -1]; // strip off surrounding [ and ]
+  return if y == "" then Empty[string] else split(y,",");
 }
 
 fun generate_public_inputs(public_inputs: string, pub_data: varray[string * int])

@@ -56,21 +56,6 @@ fn load_file(f:&str) -> String {
   return table_data;
 }
 
-fn get_public_values(input_f:&str, output_f:&str) -> PublicInputs {
-  let z = Felt::from(1 as u64);
-  let inputs = parse_line(load_file(input_f));
-  let mut input_a : [Felt;3] = [z,z,z];
-  for (i,v) in inputs.iter().enumerate() {
-    input_a[i]=*v; 
-  }
-  let outputs = parse_line(load_file(output_f));
-  let mut output_a : [Felt;3] = [z,z,z];
-  for (i,v) in outputs.iter().enumerate() {
-    output_a[i]=*v; 
-  }
-  PublicInputs::new(input_a, output_a)
-}
-
 
 pub struct ExampleProver<H: ElementHasher> {
     options: WinterProofOptions,
@@ -79,7 +64,7 @@ pub struct ExampleProver<H: ElementHasher> {
 
 impl<H: ElementHasher> ExampleProver<H> {
     pub fn new(options: WinterProofOptions) -> Self {
-println!("RUNNNING WINTERFELL");
+//println!("RUNNNING WINTERFELL");
         Self {
             options,
             _hasher: PhantomData,
@@ -94,14 +79,14 @@ println!("RUNNNING WINTERFELL");
         let nrows = vwords.len();
         let ncols = vwords[0].len();
 
-        println!("Trace length {:?}",nrows);
+        println!("[winterfell:setup] Trace length {:?}",nrows);
         assert!(
             nrows.is_power_of_two(),
             "sequence length must be a power of 2"
         );
 
-        println!("Trace width {:?}",ncols);
-        println!("DATA {:?}",vwords);
+        println!("[winterfell:setup] Trace width {:?}",ncols);
+        // println!("DATA {:?}",vwords);
         let mut tab = Vec::<Vec::<Felt>>::new();
         for colix in 0..ncols {
           let mut col = Vec::<Felt>::new();

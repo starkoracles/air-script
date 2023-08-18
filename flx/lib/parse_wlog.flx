@@ -1,8 +1,10 @@
-gen parse_wlog(log_filename: string) {
+gen parse_wlog(wlog_filename: string, log_f: string) {
   open Regdef;
 
+  var log = fopen_output_text log_f;
+  proc println(s:string) { writeln(log,s); }
 
-  var text = load log_filename;
+  var text = load wlog_filename;
   var lines = split (text, "\n");
   var vlines = varray lines;
 
@@ -352,6 +354,8 @@ gen parse_wlog(log_filename: string) {
     endmatch;
   done
   println$ "\nPARSING COMPLETE\n";
+  fclose log;
+
   return
     b_trace,                 // PROVER: Evaluation Frame for boundary (first, last)
     t_coeffs_a,              // PROVER combination coefss 

@@ -1,9 +1,8 @@
-
 use std::fs::File;
 use std::{io, process};
 use std::io::Read;
 use std::marker::PhantomData;
-use example::{FibAir, PublicInputs};
+use example::{ExampleAir, PublicInputs};
 use log::LevelFilter;
 use std::io::Write;
 use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
@@ -57,21 +56,6 @@ fn load_file(f:&str) -> String {
   return table_data;
 }
 
-fn get_public_values(input_f:&str, output_f:&str) -> PublicInputs {
-  let z = Felt::from(1 as u64);
-  let inputs = parse_line(load_file(input_f));
-  let mut input_a : [Felt;2] = [z,z];
-  for (i,v) in inputs.iter().enumerate() {
-    input_a[i]=*v; 
-  }
-  let outputs = parse_line(load_file(output_f));
-  let mut output_a : [Felt;2] = [z,z];
-  for (i,v) in outputs.iter().enumerate() {
-    output_a[i]=*v; 
-  }
-  PublicInputs::new(input_a, output_a)
-}
-
 
 pub struct ExampleProver<H: ElementHasher> {
     options: WinterProofOptions,
@@ -80,7 +64,7 @@ pub struct ExampleProver<H: ElementHasher> {
 
 impl<H: ElementHasher> ExampleProver<H> {
     pub fn new(options: WinterProofOptions) -> Self {
-println!("RUNNNING WINTERFELL");
+//println!("RUNNNING WINTERFELL");
         Self {
             options,
             _hasher: PhantomData,
@@ -95,14 +79,14 @@ println!("RUNNNING WINTERFELL");
         let nrows = vwords.len();
         let ncols = vwords[0].len();
 
-        println!("Trace length {:?}",nrows);
+        println!("[winterfell:setup] Trace length {:?}",nrows);
         assert!(
             nrows.is_power_of_two(),
             "sequence length must be a power of 2"
         );
 
-        println!("Trace width {:?}",ncols);
-        println!("DATA {:?}",vwords);
+        println!("[winterfell:setup] Trace width {:?}",ncols);
+        // println!("DATA {:?}",vwords);
         let mut tab = Vec::<Vec::<Felt>>::new();
         for colix in 0..ncols {
           let mut col = Vec::<Felt>::new();
@@ -120,20 +104,22 @@ where
     H: ElementHasher<BaseField = Felt>,
 {
     type BaseField = Felt;
-    type Air = FibAir;
+    type Air = ExampleAir;
     type Trace = TraceTable<Felt>;
     type HashFn = H;
     type RandomCoin = DefaultRandomCoin<Self::HashFn>;
 
     fn get_pub_inputs(&self, trace: &Self::Trace) -> PublicInputs {
-        let mut inputs = [Felt::ONE; 2];
-        inputs[0] = trace.get(0, 0); // a
-        inputs[1] = trace.get(1, 0); // b
+        let mut inputs = [Felt::ONE; 3];
+        inputs[0] = trace.get(1, 0); // a
+        inputs[1] = trace.get(2, 0); // b
+        inputs[2] = trace.get(3, 0); // c
 
-        let mut outputs = [Felt::ONE; 2];
+        let mut outputs = [Felt::ONE; 3];
         let last_step = trace.length() - 1; // why is this 2?
-        outputs[0] = trace.get(0, last_step); // a
-        outputs[1] = trace.get(1, last_step); // b
+        outputs[0] = trace.get(1, last_step); // a
+        outputs[1] = trace.get(2, last_step); // b
+        outputs[2] = trace.get(3, last_step); // c
         PublicInputs::new(inputs, outputs)
     }
 
@@ -164,7 +150,7 @@ fn main() {
         .filter(None, LevelFilter::Info)
         .target(env_logger::Target::Pipe(Box::new(example_log)))
         .init();
-    verify::<FibAir, Blake3_192<Felt>, DefaultRandomCoin<Blake3_192<Felt>>>(proof, pub_inputs)
+    verify::<ExampleAir, Blake3_192<Felt>, DefaultRandomCoin<Blake3_192<Felt>>>(proof, pub_inputs)
         .unwrap();
 }
 

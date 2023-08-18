@@ -80,7 +80,7 @@ pub struct ExampleProver<H: ElementHasher> {
 
 impl<H: ElementHasher> ExampleProver<H> {
     pub fn new(options: WinterProofOptions) -> Self {
-println!("RUNNNING WINTERFELL");
+//println!("RUNNNING WINTERFELL");
         Self {
             options,
             _hasher: PhantomData,
@@ -95,14 +95,14 @@ println!("RUNNNING WINTERFELL");
         let nrows = vwords.len();
         let ncols = vwords[0].len();
 
-        println!("Trace length {:?}",nrows);
+        println!("[winterfell:setup] Trace length {:?}",nrows);
         assert!(
             nrows.is_power_of_two(),
             "sequence length must be a power of 2"
         );
 
-        println!("Trace width {:?}",ncols);
-        println!("DATA {:?}",vwords);
+        println!("[winterfell:setup] Trace width {:?}",ncols);
+        //println!("DATA {:?}",vwords);
         let mut tab = Vec::<Vec::<Felt>>::new();
         for colix in 0..ncols {
           let mut col = Vec::<Felt>::new();
