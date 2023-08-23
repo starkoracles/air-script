@@ -6,8 +6,8 @@ pub(super) fn add_public_inputs_struct(scope: &mut Scope, ir: &AirIR) {
     // define the PublicInputs struct.
     let pub_inputs_struct = scope.new_struct(name).vis("pub");
 
-    for (pub_input, pub_input_size) in ir.public_inputs() {
-        pub_inputs_struct.field(pub_input, format!("[Felt; {pub_input_size}]"));
+    for (pub_input, _pub_input_size) in ir.public_inputs() {
+        pub_inputs_struct.field(pub_input, format!("Vec::<Felt>"));
     }
 
     // add the public inputs implementation block
@@ -25,8 +25,8 @@ pub(super) fn add_public_inputs_struct(scope: &mut Scope, ir: &AirIR) {
         .vis("pub")
         .ret("Self")
         .line(format!("Self {{ {} }}", pub_inputs_values.join(", ")));
-    for (pub_input, pub_input_size) in ir.public_inputs() {
-        new_fn.arg(pub_input, format!("[Felt; {pub_input_size}]"));
+    for (pub_input, _pub_input_size) in ir.public_inputs() {
+        new_fn.arg(pub_input, format!("Vec::<Felt>"));
     }
 
     add_serializable_impl(scope, &pub_inputs_values);

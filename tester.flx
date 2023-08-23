@@ -12,7 +12,10 @@ regdef alphanum_r = letter_r | digit_r;
 
 include "./flx/lib/winterfell_public";
 include "./flx/lib/parse_wlog";
+include "./flx/lib/gen_winterfell_main";
 include "./flx/lib/cairo_verifier";
+include "./flx/lib/parse_air";
+
 include "web/low_res_time";
 var tod = #{
   open LowResTime;
@@ -62,9 +65,9 @@ println$ "Fail " + bad.str + " tests";
 System::exit(0);
 
 proc stamp_file(f:string) {
-  println$ "[tester] STAMPING " + f;
+  //println$ "[tester] STAMPING " + f;
   var inp = load f;
-  println$ "File length " + inp.len.str;
+  //println$ "File length " + inp.len.str;
   save(f,stamp + "\n" + inp);
 }
 
@@ -84,13 +87,14 @@ proc process_test(input_path_f: string) {
   // FIRST STAGE OUTPUTS
   var workspace_f = "test/workspace";
   var workdir = workspace_f/testname;
+  C_hack::ignore(Directory::mkdir workspace_f);
   C_hack::ignore(Directory::mkdir workdir);
   var copied_air_f = workdir/(testname + ".air");
 
 
   begin
     var result = System::system$ "cp " +input_air_f + " "  +  copied_air_f;
-    println$ "[tester] COPIED " + input_air_f + " to " + copied_air_f + ", result="+result.str; 
+    //println$ "[tester] COPIED " + input_air_f + " to " + copied_air_f + ", result="+result.str; 
     if result != 0 perform System::exit result;
     //stamp_file copied_air_f;
   end
@@ -122,7 +126,7 @@ proc process_test(input_path_f: string) {
   begin 
     var result = System::system$ "cargo run --quiet --bin airc -- transpile -i " + copied_air_f ;
     if result != 0 perform System::exit result;
-    println$ "[tester] AIRSCIPT generated " + generated_rust_f + " and " + generated_cairo_f;
+    //println$ "[tester] AIRSCIPT generated " + generated_rust_f + " and " + generated_cairo_f;
     stamp_file generated_cairo_f;
     stamp_file generated_rust_f;
   end
@@ -134,17 +138,26 @@ proc process_test(input_path_f: string) {
     if result != 0 perform System::exit result;
     println$ "[tester] COPIED " + generated_rust_f + " to " + file_to_copy_generated_rust_to_f;
   end
-
   // ************************************************************* 
   // 3. COPY WINTERFELL HAND CODED MAIN (Rust code)
+  gen_winterfell_main(file_to_copy_winterfell_main_to_f);
+/*
   begin
     var result = System::system$ "cp " +winterfell_main_f + " "  +  file_to_copy_winterfell_main_to_f;
     if result != 0 perform System::exit result;
-    println$ "[tester] COPIED " + winterfell_main_f + " to " + file_to_copy_winterfell_main_to_f;
+    //println$ "[tester] COPIED " + winterfell_main_f + " to " + file_to_copy_winterfell_main_to_f;
   end
+*/
 
 
-  proc run_subtest (input_f:string, trace_f:string, output_f:string, parse_log_f:string) {
+  proc run_subtest (
+    input_f:string, 
+    trace_f:string, 
+    output_f:string, 
+    parse_log_f:string, 
+    protostar_workspace_test_filename_f:string,
+    protostar_log_f:string
+  ) {
 
     // ************************************************************* 
     // BUILD AND RUN HACKED WINTERFELL FOR THIS AIR
@@ -164,7 +177,7 @@ proc process_test(input_path_f: string) {
         input_f + " " + trace_f + " " + output_f
       ;
       if result != 0 perform System::exit result;
-      println$ "[tester] WINTERFELL processing complete"; 
+      //println$ "[tester] WINTERFELL processing complete"; 
     end
 
     // ************************************************************* 
@@ -179,22 +192,27 @@ proc process_test(input_path_f: string) {
     // 6. GENERATE THE CAIRO VERIFIER and SAVE IT
     begin
       var output = gen_cairo_verifier parse_data pub_data;
+      save(protostar_workspace_test_filename_f, output);
       save(protostar_test_filename_f, output);
     end
 
     // ************************************************************* 
-    // 7. COPY VERIFIER TO WHERE PROTOSTAR CAN FIND IT
+    // 7. COPY Rust generated VERIFIER SUBROUTINES TO WHERE PROTOSTAR CAN FIND IT
     begin 
       var result = System::system ("cp " + generated_cairo_f + " " + file_to_copy_generated_cairo_to_f);
       if result != 0 perform System::exit result;
-      println$ "[tester] COPIED " + generated_cairo_f + " to " + file_to_copy_generated_cairo_to_f;
+      //println$ "[tester] COPIED " + generated_cairo_f + " to " + file_to_copy_generated_cairo_to_f;
     end
 
     // ************************************************************* 
     // 8. RUN PROTOSTAR CAIRO VERIFIER TEST
     begin
-      var result = System::system "protostar --no-color -p unit test";
-      println$ "PROTOSTAR result = " + result.str;
+      var result = System::system$ "protostar --no-color -p unit test > " + protostar_log_f;
+      if result == 0 do
+        println$ "PASS";
+      else
+        println$ "***** FAIL *****";
+      done
       if result == 0 do ++good; else ++bad; done
       //perform System::exit result;
     end
@@ -209,7 +227,7 @@ proc process_test(input_path_f: string) {
   var test_input_re = RE2 test_input_r.render;
   var infiles = FileSystem::regfilesin(pathname_f,test_input_re);
 
-  println$ "[tester] INPUT FILES " + infiles.str; 
+  //println$ "[tester] INPUT FILES " + infiles.str; 
   var cases = Empty[string];
   for file in infiles do
     match Match(test_input_re, file) with
@@ -219,15 +237,17 @@ proc process_test(input_path_f: string) {
   done
   cases = rev cases;
 
-  println$ "[tester] INPUT CASES " + cases.str;
+  //println$ "[tester] INPUT CASES " + cases.str;
 
   for input_set in cases do
     var input_f = pathname_f/(testname + ".public_input_"+input_set);
     for trace_length in (8,16,32) do
       var trace_f = workdir/testname + ".trace_" + input_set + "_tl_"+trace_length.str;
       var output_f = workdir/testname + ".public_output_"+input_set+"_tl_"+trace_length.str;
-      var parse_log_f = workdir/testname + ".parse_log_+"input_set+"_tl_" + trace_length.str;
+      var parse_log_f = workdir/testname + ".parse_log_" input_set+"_tl_" + trace_length.str;
       var vm_log_f = workdir/testname + ".vm_log_" + input_set+"_tl_" + trace_length.str;
+      var protostar_workspace_test_filename_f = workdir/testname + ".protostar_test_" + input_set+"_tl_" + trace_length.str;
+      var protostar_log_f = workdir/testname + ".protostar_log_" + input_set+"_tl_" + trace_length.str;
       begin
         println$ "[tester] Running VM " + vm_name_f + " for input " input_f + " trace_length " + trace_length.str;
 
@@ -236,10 +256,10 @@ proc process_test(input_path_f: string) {
            " --trace_file=" + trace_f + " --output_file="+output_f +
            " --trace_length=" + trace_length.str " > " + vm_log_f
         ;
-        println$ "[tester] GENERATED TRACE " + trace_f + ", result="+result.str; 
+        //println$ "[tester] GENERATED TRACE " + trace_f + ", result="+result.str; 
         if result != 0 perform System::exit result;
       end
-      run_subtest(input_f,trace_f,output_f, parse_log_f);
+      run_subtest(input_f,trace_f,output_f, parse_log_f, protostar_workspace_test_filename_f, protostar_log_f);
     done
   done
 }

@@ -1,8 +1,9 @@
+
 use std::fs::File;
 use std::{io, process};
 use std::io::Read;
 use std::marker::PhantomData;
-use example::{ExampleAir, PublicInputs};
+use example::{AirType, PublicInputs};
 use log::LevelFilter;
 use std::io::Write;
 use winter_air::{FieldExtension, ProofOptions as WinterProofOptions};
@@ -19,7 +20,7 @@ mod example;
 fn parse_fast(value: &str) -> Felt {
   let mut result = 0u64;
   for b in value.bytes() {
-    if b >= 48  && b < 58 { 
+    if b >= 48  && b < 58 {
       result = 10u64 * result + ((b as u64) - 48u64);
     }
     else { panic!("Invalid character in trace table"); }
@@ -34,12 +35,13 @@ fn parse_line(line: String) -> Vec::<Felt> {
      if word != "" {
        vw.push(parse_fast(&word));
      }
-   } 
+   }
    return vw;
 }
 
 fn parse_lines(table_data: String) -> Vec::<Vec::<Felt>> {
-  let lines = table_data.split("\n");
+  let lines = table_data.split("
+");
   let mut vwords = Vec::<Vec::<Felt>>::new();
   for line in lines.into_iter() {
      if line != "" {
@@ -51,9 +53,23 @@ fn parse_lines(table_data: String) -> Vec::<Vec::<Felt>> {
 
 fn load_file(f:&str) -> String {
   let mut table_file = File::open (f).unwrap();
-  let mut table_data = String::new(); 
+  let mut table_data = String::new();
   table_file.read_to_string(&mut table_data).unwrap();
   return table_data;
+}
+
+fn get_public_values(input_f:&str, output_f:&str) -> PublicInputs {
+  let inputs = parse_line(load_file(input_f));
+  let mut input_a = Vec::<Felt>::new();
+  for v in inputs.iter() {
+    input_a.push(*v)
+  }
+  let outputs = parse_line(load_file(output_f));
+  let mut output_a = Vec::<Felt>::new();
+  for v in outputs.iter() {
+    output_a.push(*v);
+  }
+  PublicInputs::new(input_a, output_a)
 }
 
 
@@ -75,23 +91,23 @@ impl<H: ElementHasher> ExampleProver<H> {
     pub fn build_trace(&self, table_f: &str) -> TraceTable<Felt> {
 
         let table_data = load_file(table_f);
-        let vwords = parse_lines(table_data); 
+        let vwords = parse_lines(table_data);
         let nrows = vwords.len();
         let ncols = vwords[0].len();
 
-        println!("[winterfell:setup] Trace length {:?}",nrows);
+        //println!("[winterfell:setup] Trace length {:?}",nrows);
         assert!(
             nrows.is_power_of_two(),
             "sequence length must be a power of 2"
         );
 
-        println!("[winterfell:setup] Trace width {:?}",ncols);
-        // println!("DATA {:?}",vwords);
+        //println!("[winterfell:setup] Trace width {:?}",ncols);
+        //println!("DATA {:?}",vwords);
         let mut tab = Vec::<Vec::<Felt>>::new();
         for colix in 0..ncols {
           let mut col = Vec::<Felt>::new();
           for rowix in 0..nrows {
-            col.push(Felt::from(vwords[rowix][colix]));   
+            col.push(Felt::from(vwords[rowix][colix]));
           }
           tab.push(col);
         }
@@ -104,22 +120,26 @@ where
     H: ElementHasher<BaseField = Felt>,
 {
     type BaseField = Felt;
-    type Air = ExampleAir;
+    type Air = AirType;
     type Trace = TraceTable<Felt>;
     type HashFn = H;
     type RandomCoin = DefaultRandomCoin<Self::HashFn>;
 
     fn get_pub_inputs(&self, trace: &Self::Trace) -> PublicInputs {
-        let mut inputs = [Felt::ONE; 3];
-        inputs[0] = trace.get(1, 0); // a
-        inputs[1] = trace.get(2, 0); // b
-        inputs[2] = trace.get(3, 0); // c
+        let trace_width = trace.width();
+//println!("Trace width {:?} ", trace_width);
+        let mut inputs = Vec::<Felt>::new();
+        for i in 0..trace_width {
+//println!("Input {:?} ", trace.get(i, 0));
+          inputs.push (trace.get(i, 0));
+        }
 
-        let mut outputs = [Felt::ONE; 3];
+        let mut outputs = Vec::<Felt>::new();
         let last_step = trace.length() - 1; // why is this 2?
-        outputs[0] = trace.get(1, last_step); // a
-        outputs[1] = trace.get(2, last_step); // b
-        outputs[2] = trace.get(3, last_step); // c
+        for i in 0..trace_width {
+//println!("Output {:?} ", trace.get(i, last_step));
+          outputs.push (trace.get(i, last_step));
+        }
         PublicInputs::new(inputs, outputs)
     }
 
@@ -129,7 +149,7 @@ where
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect(); 
+    let args: Vec<String> = env::args().collect();
     let input_f = &args[1];
     let trace_f = &args[2];
     let output_f = &args[3];
@@ -150,7 +170,8 @@ fn main() {
         .filter(None, LevelFilter::Info)
         .target(env_logger::Target::Pipe(Box::new(example_log)))
         .init();
-    verify::<ExampleAir, Blake3_192<Felt>, DefaultRandomCoin<Blake3_192<Felt>>>(proof, pub_inputs)
+    verify::<AirType, Blake3_192<Felt>, DefaultRandomCoin<Blake3_192<Felt>>>(proof, pub_inputs)
         .unwrap();
 }
+
 

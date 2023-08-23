@@ -64,8 +64,8 @@ fn add_air_struct(scope: &mut Scope, ir: &AirIR, name: &str) {
         .field("context", "AirContext<Felt>");
 
     // add public inputs
-    for (pub_input, pub_input_size) in ir.public_inputs() {
-        air_struct.field(pub_input, format!("[Felt; {pub_input_size}]"));
+    for (pub_input, _pub_input_size) in ir.public_inputs() {
+        air_struct.field(pub_input, format!("Vec::<Felt>"));
     }
 
     // add the custom Air implementation block
