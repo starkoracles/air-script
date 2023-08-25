@@ -1,4 +1,4 @@
-// TEST: Wed Aug 23 05:36:01 2023 UTC
+// TEST: Fri Aug 25 01:01:37 2023 UTC
 // Air name AirType 1 segments
 from starkware.cairo.common.alloc import alloc
 from starkware.cairo.common.memcpy import memcpy
@@ -231,6 +231,13 @@ func merge_boundary_0{range_check_ptr}(
   let trace_poly_degree = trace_length  - 1;
   let divisor_degree = 1;
   let target_degree =  composition_degree + divisor_degree;
+ %{
+    print('CAIRO Trace length ', ids.trace_poly_degree)
+    print('CAIRO blowup factor ', ids.blowup_factor)
+    print('CAIRO Composition degree ', ids.composition_degree)
+    print('CAIRO Divisor degree ', ids.divisor_degree)
+    print('CAIRO Target degree ', ids.target_degree)
+ %}
   // Evaluate divisor
   let first_z = sub_g(x, 1);
   let v1 = sub_g(trace_length, 1);
@@ -247,59 +254,101 @@ func merge_boundary_0{range_check_ptr}(
   // Merge degree 1
   let evaluation_degree = 1 * (trace_length - 1);
   let degree_adjustment = target_degree - evaluation_degree;
+  %{
+    print('CAIRO evaluation degree ', ids.evaluation_degree)
+    print('CAIRO degree adjustment ', ids.degree_adjustment)
+  %}
   let xp = pow_g(x, degree_adjustment);
 
   // Include boundary 0
   let v1 = mul_g(coeffs_boundary_b[0],  xp);
   let v2 = add_g(coeffs_boundary_a[0], v1);
   let v3 = mul_g(v2, b_evaluations[0]);
+  %{
+    print('CAIRO numerator component ', ids.v3)
+  %}
   local first_sum_1 = add_g(first_sum_0,v3);
 
   // Include boundary 1
   let v1 = mul_g(coeffs_boundary_b[1],  xp);
   let v2 = add_g(coeffs_boundary_a[1], v1);
   let v3 = mul_g(v2, b_evaluations[1]);
+  %{
+    print('CAIRO numerator component ', ids.v3)
+  %}
   local first_sum_2 = add_g(first_sum_1,v3);
 
   // Include boundary 2
   let v1 = mul_g(coeffs_boundary_b[2],  xp);
   let v2 = add_g(coeffs_boundary_a[2], v1);
   let v3 = mul_g(v2, b_evaluations[2]);
+  %{
+    print('CAIRO numerator component ', ids.v3)
+  %}
   local first_sum_3 = add_g(first_sum_2,v3);
 
   // Include boundary 3
   let v1 = mul_g(coeffs_boundary_b[3],  xp);
   let v2 = add_g(coeffs_boundary_a[3], v1);
   let v3 = mul_g(v2, b_evaluations[3]);
+  %{
+    print('CAIRO numerator component ', ids.v3)
+  %}
   local first_sum_4 = add_g(first_sum_3,v3);
 
   // Include boundary 4
   let v1 = mul_g(coeffs_boundary_b[4],  xp);
   let v2 = add_g(coeffs_boundary_a[4], v1);
   let v3 = mul_g(v2, b_evaluations[4]);
+  %{
+    print('CAIRO numerator component ', ids.v3)
+  %}
   local last_sum_1 = add_g(last_sum_0,v3);
 
   // Include boundary 5
   let v1 = mul_g(coeffs_boundary_b[5],  xp);
   let v2 = add_g(coeffs_boundary_a[5], v1);
   let v3 = mul_g(v2, b_evaluations[5]);
+  %{
+    print('CAIRO numerator component ', ids.v3)
+  %}
   local last_sum_2 = add_g(last_sum_1,v3);
 
   // Include boundary 6
   let v1 = mul_g(coeffs_boundary_b[6],  xp);
   let v2 = add_g(coeffs_boundary_a[6], v1);
   let v3 = mul_g(v2, b_evaluations[6]);
+  %{
+    print('CAIRO numerator component ', ids.v3)
+  %}
   local last_sum_3 = add_g(last_sum_2,v3);
 
   // Include boundary 7
   let v1 = mul_g(coeffs_boundary_b[7],  xp);
   let v2 = add_g(coeffs_boundary_a[7], v1);
   let v3 = mul_g(v2, b_evaluations[7]);
+  %{
+    print('CAIRO numerator component ', ids.v3)
+  %}
   local last_sum_4 = add_g(last_sum_3,v3);
+let first_sum = first_sum_4;
+let last_sum = last_sum_4;
+  %{
+    print('CAIRO final numerator first', ids.first_sum)
+    print('CAIRO final numerator  last', ids.last_sum)
+  %}
 
-  let first = div_g(first_sum_4,first_z);
-  let last = div_g(last_sum_4,last_z);
-  return add_g(first,last);
+  let first = div_g(first_sum,first_z);
+  let last = div_g(last_sum,last_z);
+  %{
+    print('CAIRO quotient first', ids.first)
+    print('CAIRO quotient last', ids.last)
+  %}
+  let combined = add_g(first,last);
+  %{
+    print('CAIRO combined ', ids.combined)
+  %}
+  return combined;
 }
 
 // PUT CONSTRAINT EVALUATION FUNCTION HERE

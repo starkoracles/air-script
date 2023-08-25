@@ -193,9 +193,17 @@ impl CodeGenerator {
        s = s + "  let g = trace_domain_generator;\n";
 
        s = s + "  let composition_degree = trace_length * blowup_factor - 1;\n";
+
        s = s + "  let trace_poly_degree = trace_length  - 1;\n";
        s = s + "  let divisor_degree = 1;\n";
        s = s + "  let target_degree =  composition_degree + divisor_degree;\n";
+       s = s + " %{\n";
+       s = s + "    print('CAIRO Trace length ', ids.trace_poly_degree)\n";
+       s = s + "    print('CAIRO blowup factor ', ids.blowup_factor)\n";
+       s = s + "    print('CAIRO Composition degree ', ids.composition_degree)\n";
+       s = s + "    print('CAIRO Divisor degree ', ids.divisor_degree)\n";
+       s = s + "    print('CAIRO Target degree ', ids.target_degree)\n";
+       s = s + " %}\n";
  
 
        s = s + "  // Evaluate divisor\n";
@@ -230,6 +238,10 @@ impl CodeGenerator {
            s = s + "\n  // Merge degree "+ &deg.to_string() +"\n";
            s = s + "  let evaluation_degree = "+&deg.to_string() +" * (trace_length - 1);\n";
            s = s + "  let degree_adjustment = target_degree - evaluation_degree;\n";
+       s = s + "  %{\n";
+       s = s + "    print('CAIRO evaluation degree ', ids.evaluation_degree)\n";
+       s = s + "    print('CAIRO degree adjustment ', ids.degree_adjustment)\n";
+       s = s + "  %}\n";
            s = s + "  let xp = pow_g(x, degree_adjustment);\n";
            for (tr, trdeg) in boundary_degrees.iter().enumerate() {
              if deg == *trdeg {
@@ -238,6 +250,10 @@ impl CodeGenerator {
                s = s + "  let v1 = mul_g(coeffs_boundary_b["+&trno+"],  xp);\n";
                s = s + "  let v2 = add_g(coeffs_boundary_a["+ &trno +"], v1);\n";
                s = s + "  let v3 = mul_g(v2, b_evaluations["+&trno+"]);\n";
+       s = s + "  %{\n";
+       s = s + "    print('CAIRO numerator component ', ids.v3)\n";
+       s = s + "  %}\n";
+
                match boundary_domain[tr] {
                  ConstraintDomain::FirstRow => {
                     s = s + "  local first_sum_"+&(first_counter+1).to_string() +" = add_g(first_sum_"+&first_counter.to_string()+",v3);\n";
@@ -254,10 +270,24 @@ impl CodeGenerator {
          }
        }
 
+       s = s + "let first_sum = first_sum_"+&first_counter.to_string()+";\n";
+       s = s + "let last_sum = last_sum_"+&last_counter.to_string()+";\n";
+       s = s + "  %{\n";
+       s = s + "    print('CAIRO final numerator first', ids.first_sum)\n";
+       s = s + "    print('CAIRO final numerator  last', ids.last_sum)\n";
+       s = s + "  %}\n";
        s = s + "\n";
-       s = s + "  let first = div_g(first_sum_"+&first_counter.to_string() + ",first_z);\n";
-       s = s + "  let last = div_g(last_sum_"+&last_counter.to_string() + ",last_z);\n";
-       s = s + "  return add_g(first,last);\n";
+       s = s + "  let first = div_g(first_sum,first_z);\n";
+       s = s + "  let last = div_g(last_sum,last_z);\n";
+       s = s + "  %{\n";
+       s = s + "    print('CAIRO quotient first', ids.first)\n";
+       s = s + "    print('CAIRO quotient last', ids.last)\n";
+       s = s + "  %}\n";
+       s = s + "  let combined = add_g(first,last);\n";
+       s = s + "  %{\n";
+       s = s + "    print('CAIRO combined ', ids.combined)\n";
+       s = s + "  %}\n";
+       s = s + "  return combined;\n";
        s = s + "}\n";
 
 

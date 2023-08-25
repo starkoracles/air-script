@@ -307,6 +307,21 @@ gen parse_wlog(wlog_filename: string, log_f: string) {
     done
   done
 
+  ++lno;
+  regdef l26 = "b_combined: " group(number) ", final_result: " group(number);
+  var r26 = RE2 l26.render;
+  var x26 = Match(r26, vlines.lno);
+  match x26 with
+  | Some y => 
+    println$  "b_combined: " + y.1;
+    println$  "final_result : " + y.2;
+  var b_combined = y.1;
+  var final_result = y.2;
+  | None => println$ "Parse "+lno.str+" failed";
+    System::exit 42;
+  endmatch;
+
+
   var b_expected_evals = varray (rev(b_expected_evals_list));
 
   println$ "\nWLOG PARSE COMPLETE OK\n";
@@ -379,7 +394,7 @@ gen parse_wlog(wlog_filename: string, log_f: string) {
     b_nsteps.1.size,         // PROVER?? steps in Shamir reduction
     main_transition_constraints_target_degree, // PROVER?? 
     t_combined,              // CHECK main transition combine
-    "4219772168637362433",   //  b_combined, CHECK boundary combine
+    b_combined,   //  b_combined, CHECK boundary combine
 
     periodic_values,         // AIR
     public_inputs            // PROVER
