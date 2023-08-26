@@ -1,0 +1,24 @@
+# Fibonacci
+ 
+def AirType
+
+trace_columns:
+    main: [a, b]
+
+public_inputs:
+    inputs: [2]
+    outputs: [2]
+
+boundary_constraints:
+    # define boundary constraints against the main trace at the first row of the trace.
+    enf a.first = inputs[0]
+    enf b.first = inputs[1]
+
+    # define boundary constraints against the main trace at the last row of the trace.
+    enf a.last = outputs[0]
+    enf b.last = outputs[1]
+
+integrity_constraints:
+    # a' = b, b' = a + b 
+    enf a' - b = 0
+    enf b' - a - b = 0
