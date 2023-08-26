@@ -15,9 +15,9 @@ pub(super) fn add_fn_get_assertions(impl_ref: &mut Impl, ir: &AirIR) {
     // define the function
     let get_assertions = impl_ref
         .new_fn("get_assertions")
-        .arg_ref_self()
+         .arg_ref_self()
         .ret("Vec<Assertion<Felt>>");
-
+    get_assertions.line("type E = Felt;");
     // add the boundary constraints
     add_assertions(get_assertions, ir, 0);
 
@@ -62,7 +62,7 @@ fn add_assertions(func_body: &mut codegen::Function, ir: &AirIR, trace_segment: 
         debug_assert!(trace_access.trace_segment() == trace_segment);
 
         let assertion = format!(
-            "result.push(Assertion::single({}, {}, {}));",
+            "result.push(Assertion::<E>::single({}, {}, {}.into()));",
             trace_access.col_idx(),
             domain_to_str(constraint.domain()),
             expr_root.to_string(ir, elem_type, trace_segment)

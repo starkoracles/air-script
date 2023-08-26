@@ -1,0 +1,148 @@
+open Regdef;
+
+match System::args() with
+| Cons (h,t) =>
+   var args = t;
+| Empty => System::exit(1);
+endmatch;
+
+var trace_f = "";
+var input_f = "";
+var output_f = "";
+var trace_length = 0;
+
+begin
+  regdef digit_r = charset "0123456789";
+  regdef upper_r = charset "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  regdef lower_r = charset "abcdefghijklmnopqrstuvwxyz";
+  regdef letter_r = upper_r | lower_r;
+  regdef fchar_r = letter_r | digit_r | "_" | "/" | ".";
+  regdef file_name_r  = fchar_r+;
+
+
+  regdef file_key_r = group("trace_file") | group("input_file") | group("output_file");
+  regdef trace_length_key_r = "trace_length";
+
+  regdef cmd_line_switch_r = "--" 
+    (
+       file_key_r "=" group(file_name_r)
+       | group(trace_length_key_r) "=" group(digit_r+) 
+    )
+  ;
+
+  println$ "[vm] example -- start";
+  for arg in args perform
+    print$ arg + " ";
+  println "";
+
+  var cmd_re = RE2 cmd_line_switch_r.render;
+
+  for arg in args do
+    //println$ "ARG " + arg;
+    var r = Match(cmd_re, arg);
+    match r with
+    | Some (v) =>
+      var tfk,ifk,ofk,fn,tlk,tv = v.1,v.2,v.3,v.4,v.5,v.6;
+      if tfk != "" do trace_f = fn;
+      elif ifk != "" do input_f = fn;
+      elif ofk != "" do output_f = fn;
+      elif tlk != "" do trace_length = tv.int;
+      else System::exit(2);
+      done
+    | None =>
+       println$ "Invalid command line argument `" + arg+ "`";
+       System::exit(1);
+    endmatch; 
+  done
+  println$ "input_file="+input_f +", output_file="+output_f+", trace_file=" + trace_f + ", trace_length=" + trace_length.str;
+  if input_f == "" do
+    println$ "Missing input_file";
+    System::exit(1);
+  elif output_f == "" do
+    println$ "Missing output_file name";
+    System::exit(1);
+  elif trace_f == "" do
+    println$ "Missing trace_file name";
+    System::exit(1);
+  elif trace_length == 0 do
+    println$ "Missing trace_length value";
+    System::exit(1);
+  done
+
+
+  println$ "[vm] input_f      = " + input_f;
+  println$ "[vm] trace_f      = " + trace_f;
+  println$ "[vm] output_f     = " + output_f;
+  println$ "[vm] trace_length = " + trace_length.str;
+end
+
+struct row { s:uint64; a:uint64; b:uint64; c:uint64; p:uint64; }
+instance Str[row] {
+  fun str(next:row) =>
+    next.s.str + " " + next.a.str + " " + next.b.str + " " + next.c.str
+  ;
+}
+
+begin // ensures correct initialisation
+  regdef digit = charset "0123456789"; 
+  regdef number = " "* group(digit+) " "*;
+  regdef r5 = number number number number number "\n"*;
+
+  fun read5(p:string) : uint64^5 {
+    match Match(RE2 r5.render, p) with
+    | Some v =>
+      return v.1.uint64, v.2.uint64,v.3.uint64, v.4.uint64, v.5.uint64;
+
+    | None => 
+      println$ "Input file parse error, 5 numbers required";
+      System::exit(1);
+    endmatch;
+  }
+
+  var rands_t = load("test/input/random.all"); // temporary hack, should pass in
+  var rands_s = split(rands_t, " ");
+  var randv = varray[uint64] rands_s.len; // enough
+  for v_s in rands_s do
+    if v_s != "" do
+      regdef number_r = group(digit+) "\n"?;
+      match Match(RE2 number_r.render, v_s) with
+      | Some x =>
+        var v = v_s.uint64;
+        push_back(randv, v);
+      | None =>
+        println$ "Error parsing random number `" + v_s + "`";
+        System::exit(1);
+      endmatch;
+    done
+  done
+
+  var trace = fopen_output_text trace_f;
+
+  var input_data = load(input_f);
+  var a,b,c,p = read5(input_data);
+  var s = 1u64;
+  var init = row(s,a,b,c,p);
+  var xtrace = varray[row] trace_length.size;
+  push_back(xtrace,init);
+  writeln$ trace, init.str;
+  println$ "[vm] trace";
+  println$ "[vm] " + init.str;
+  var next = init;
+  for i in 1 ..<trace_length do
+    // order matters to get variable to refer to old and new values as required
+    p = p * (c + randv.0);
+    s = 1u64;
+    a = i.uint64 + 1u64;
+    b = i.uint64 + 2u64;
+    c = a * b; 
+    next = row(s,a,b,c,p); 
+    push_back(xtrace,next);
+    println$ "[vm] " + next.str;
+    writeln$ trace, next.str;
+  done
+  fclose trace;
+
+  save(output_f,next.s.str + next.a.str + " " next.b.str + " " + next.c.str + next.p.str + '\n');
+end
+  
+

@@ -217,12 +217,6 @@ impl CodeGenerator {
        s = s + "    print('CAIRO DIVISOR last  ',ids.last_z)\n";
        s = s + "  %}\n";
 
-    
-       //s = s + "let last_z =  3883696794228705047;\n";
-       //s = s + " %{\n";
-       //s = s + "     print('WINTEFELL HACK divisor_last = ', ids.last_z)\n";
-       //s = s + " %}\n";
- 
        s = s + "\n";
        s = s + "  local first_sum_0 = 0;\n";
        s = s + "  local last_sum_0 = 0;\n";
@@ -250,9 +244,9 @@ impl CodeGenerator {
                s = s + "  let v1 = mul_g(coeffs_boundary_b["+&trno+"],  xp);\n";
                s = s + "  let v2 = add_g(coeffs_boundary_a["+ &trno +"], v1);\n";
                s = s + "  let v3 = mul_g(v2, b_evaluations["+&trno+"]);\n";
-       s = s + "  %{\n";
-       s = s + "    print('CAIRO numerator component ', ids.v3)\n";
-       s = s + "  %}\n";
+       //s = s + "  %{\n";
+       //s = s + "    print('CAIRO numerator component ', ids.v3)\n";
+       //s = s + "  %}\n";
 
                match boundary_domain[tr] {
                  ConstraintDomain::FirstRow => {
